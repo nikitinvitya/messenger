@@ -1,15 +1,11 @@
 package authhandler
 
 import (
-	"encoding/json"
 	"errors"
-	handler "github.com/nikitinvitya/messenger/internal/handler/response"
+	"github.com/nikitinvitya/messenger/internal/handler/helper"
+	"github.com/nikitinvitya/messenger/internal/handler/response"
 	"github.com/nikitinvitya/messenger/internal/service/authservice"
 	"net/http"
-)
-
-var (
-	InvalidCredentials = "Invalid credentials"
 )
 
 type AuthHandler struct {
@@ -24,13 +20,12 @@ func NewAuthHandler(service authservice.AuthService) *AuthHandler {
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
-		Email    string `json:"email"`
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Email    string `json:"email" validate:"required,email"`
+		Username string `json:"username"  validate:"required,min=3,max=32"`
+		Password string `json:"password" validate:"required,min=8"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-		handler.ClientErrorResponse(w, http.StatusBadRequest, InvalidCredentials)
+	if !helper.ValidateRequest(w, r, &requestBody) {
 		return
 	}
 
@@ -46,18 +41,17 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully"})
+	successPayload := map[string]string{"message": "User created successfully"}
+	handler.SuccessResponse(w, http.StatusCreated, successPayload)
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
-		Identifier string `json:"identifier"`
-		Password   string `json:"password"`
+		Identifier string `json:"identifier" validate:"required,min=3"`
+		Password   string `json:"password" validate:"required,min=8"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-		handler.ClientErrorResponse(w, http.StatusBadRequest, InvalidCredentials)
+	if !helper.ValidateRequest(w, r, &requestBody) {
 		return
 	}
 
@@ -71,7 +65,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	tokenPayload := map[string]string{"token": token}
+	handler.SuccessResponse(w, http.StatusOK, tokenPayload)
 }

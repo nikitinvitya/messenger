@@ -7,7 +7,7 @@ import (
 )
 
 type errorResponse struct {
-	Error string `json:"error"`
+	Error interface{} `json:"error"`
 }
 
 func ServerErrorResponse(w http.ResponseWriter, statusCode int, userMessage string, err error) {
@@ -35,4 +35,13 @@ func SuccessResponse(w http.ResponseWriter, statusCode int, payload interface{})
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		slog.Error("failed to write success response", "error", err)
 	}
+}
+
+func ValidationErrorResponse(w http.ResponseWriter, statusCode int, validationErrors map[string]string) {
+	slog.Warn("Validation error", "details", validationErrors)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	json.NewEncoder(w).Encode(errorResponse{Error: validationErrors})
 }
