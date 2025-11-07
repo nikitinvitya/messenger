@@ -36,8 +36,8 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 
 	router.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", nil)
-			r.Post("/login", nil)
+			r.Post("/register", h.Auth.Register)
+			r.Post("/login", h.Auth.Login)
 		})
 	})
 
