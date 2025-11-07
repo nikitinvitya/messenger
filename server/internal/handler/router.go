@@ -2,15 +2,33 @@ package handler
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/nikitinvitya/messenger/internal/handler/authhandler"
+	"github.com/nikitinvitya/messenger/internal/handler/middleware"
+	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
 	"net/http"
 	"os"
 )
 
+type APIHandlersDeps struct {
+	Auth      *authhandler.AuthHandler
+	User      *userhandler.UserHandler
+	JwtSecret string
+}
+
 type APIHandlers struct {
-	Auth *authhandler.AuthHandler
+	Auth      *authhandler.AuthHandler
+	User      *userhandler.UserHandler
+	jwtSecret string
+}
+
+func NewAPIHandlers(deps APIHandlersDeps) *APIHandlers {
+	return &APIHandlers{
+		Auth:      deps.Auth,
+		User:      deps.User,
+		jwtSecret: deps.JwtSecret,
+	}
 }
 
 func (h *APIHandlers) InitRoutes() http.Handler {
@@ -29,15 +47,22 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 		MaxAge:           300,
 	}))
 
-	router.Use(middleware.Logger)
-	router.Use(middleware.Recoverer)
-	router.Use(middleware.RequestID)
-	router.Use(middleware.RealIP)
+	router.Use(chiMiddleware.Logger)
+	router.Use(chiMiddleware.Recoverer)
+	router.Use(chiMiddleware.RequestID)
+	router.Use(chiMiddleware.RealIP)
 
 	router.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", h.Auth.Register)
 			r.Post("/login", h.Auth.Login)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(h.jwtSecret))
+			r.Route("/users", func(r chi.Router) {
+				r.Get("/me", h.User.GetMyProfile)
+			})
 		})
 	})
 

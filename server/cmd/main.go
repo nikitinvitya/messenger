@@ -9,8 +9,10 @@ import (
 	server "github.com/nikitinvitya/messenger"
 	"github.com/nikitinvitya/messenger/internal/handler"
 	"github.com/nikitinvitya/messenger/internal/handler/authhandler"
+	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
 	"github.com/nikitinvitya/messenger/internal/repository/userrepository"
 	"github.com/nikitinvitya/messenger/internal/service/authservice"
+	"github.com/nikitinvitya/messenger/internal/service/userservice"
 	"log"
 	"log/slog"
 	"net/http"
@@ -53,9 +55,16 @@ func main() {
 	userRepo := userrepository.NewUserRepository(db)
 	authService := authservice.NewAuthService(userRepo, jwtSecret)
 	authHandler := authhandler.NewAuthHandler(authService)
-	apiHandlers := &handler.APIHandlers{
-		Auth: authHandler,
+	userService := userservice.NewUserService(userRepo)
+	userHandler := userhandler.NewUserHandler(userService)
+
+	apiHandlersDeps := handler.APIHandlersDeps{
+		Auth:      authHandler,
+		User:      userHandler,
+		JwtSecret: jwtSecret,
 	}
+
+	apiHandlers := handler.NewAPIHandlers(apiHandlersDeps)
 	router := apiHandlers.InitRoutes()
 
 	srv := &server.Server{}

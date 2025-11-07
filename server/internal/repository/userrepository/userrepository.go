@@ -11,6 +11,7 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, user *model.User) (int, error)
 	GetUserByName(ctx context.Context, username string) (*model.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
+	GetUserByID(ctx context.Context, id int) (*model.User, error)
 }
 
 type userRepository struct {
@@ -57,6 +58,22 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 	var user model.User
 	sqlResponse := r.db.QueryRowContext(ctx, sqlReq, email)
 	if err := sqlResponse.Scan(&user.ID, &user.Email, &user.Username, &user.PasswordHash); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *userRepository) GetUserByID(ctx context.Context, id int) (*model.User, error) {
+	sqlReq := `SELECT id, email, username, created_at FROM users WHERE id = $1`
+
+	var user model.User
+	sqlResponse := r.db.QueryRowContext(ctx, sqlReq, id)
+	if err := sqlResponse.Scan(&user.ID, &user.Email, &user.Username, &user.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
