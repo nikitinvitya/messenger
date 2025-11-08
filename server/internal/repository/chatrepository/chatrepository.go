@@ -10,6 +10,7 @@ import (
 type ChatRepository interface {
 	CreateChat(ctx context.Context, name *string, userIDs []int) (int, error)
 	ListUserChats(ctx context.Context, userID int) ([]model.Chat, error)
+	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 }
 
 type chatRepository struct {
@@ -84,4 +85,20 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]model
 	}
 
 	return chats, nil
+}
+
+func (r *chatRepository) IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error) {
+	sqlReq := `SELECT EXISTS (
+						SELECT 1
+						FROM chat_participants
+						WHERE user_id = $1 AND chat_id = $2)`
+
+	var exists bool
+
+	if err := r.db.QueryRowContext(ctx, sqlReq, userID, chatID).Scan(&exists); err != nil {
+		return false, fmt.Errorf("failed to checkout participants: %w", err)
+	}
+
+	return exists, nil
+
 }

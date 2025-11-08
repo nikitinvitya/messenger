@@ -3,6 +3,7 @@ package messagerepository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/nikitinvitya/messenger/internal/model"
 )
@@ -11,6 +12,7 @@ type MessageRepository interface {
 	CreateMessage(ctx context.Context, message *model.Message) (int, error)
 	ListMessagesInChat(ctx context.Context, chatID int, limit, offset int) ([]model.Message, error)
 	UpdateMessage(ctx context.Context, messageID int, newContent string) error
+	GetMessageByID(ctx context.Context, messageID int) (*model.Message, error)
 }
 
 type messageRepository struct {
@@ -85,4 +87,29 @@ func (r *messageRepository) UpdateMessage(ctx context.Context, messageID int, ne
 	}
 
 	return nil
+}
+
+func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (*model.Message, error) {
+	sqlReq := `SELECT id, sender_id, chat_id, content, created_at, edited_at
+			   FROM messages
+			   WHERE id = $1`
+
+	var message model.Message
+	err := r.db.QueryRowContext(ctx, sqlReq, messageID).Scan(
+		&message.ID,
+		&message.ChatID,
+		&message.SenderID,
+		&message.Content,
+		&message.CreatedAt,
+		&message.EditedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("failed to get message by id: %w", err)
+	}
+
+	return &message, nil
 }
