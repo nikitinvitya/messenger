@@ -9,9 +9,15 @@ import (
 	server "github.com/nikitinvitya/messenger"
 	"github.com/nikitinvitya/messenger/internal/handler"
 	"github.com/nikitinvitya/messenger/internal/handler/authhandler"
+	"github.com/nikitinvitya/messenger/internal/handler/chathandler"
+	"github.com/nikitinvitya/messenger/internal/handler/messagehandler"
 	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
+	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
+	"github.com/nikitinvitya/messenger/internal/repository/messagerepository"
 	"github.com/nikitinvitya/messenger/internal/repository/userrepository"
 	"github.com/nikitinvitya/messenger/internal/service/authservice"
+	"github.com/nikitinvitya/messenger/internal/service/chatservice"
+	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"github.com/nikitinvitya/messenger/internal/service/userservice"
 	"log"
 	"log/slog"
@@ -53,14 +59,24 @@ func main() {
 	slog.Info("Successfully connected to the database!")
 
 	userRepo := userrepository.NewUserRepository(db)
+	chatRepo := chatrepository.NewChatRepository(db)
+	messageRepo := messagerepository.NewMessageRepository(db)
+
 	authService := authservice.NewAuthService(userRepo, jwtSecret)
-	authHandler := authhandler.NewAuthHandler(authService)
 	userService := userservice.NewUserService(userRepo)
+	chatService := chatservice.NewChatService(chatRepo)
+	messageService := messageservice.NewMessageService(chatRepo, messageRepo)
+
+	authHandler := authhandler.NewAuthHandler(authService)
 	userHandler := userhandler.NewUserHandler(userService)
+	chatHandler := chathandler.NewChatHandler(chatService)
+	messageHandler := messagehandler.NewMessageHandler(messageService)
 
 	apiHandlersDeps := handler.APIHandlersDeps{
 		Auth:      authHandler,
 		User:      userHandler,
+		Chat:      chatHandler,
+		Message:   messageHandler,
 		JwtSecret: jwtSecret,
 	}
 
