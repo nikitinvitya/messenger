@@ -17,7 +17,7 @@ var (
 type MessageService interface {
 	CreateMessage(ctx context.Context, senderID, chatID int, content string) (*model.Message, error)
 	ListMessagesInChat(ctx context.Context, userID, chatID, limit, offset int) ([]model.Message, error)
-	UpdateMessage(ctx context.Context, userID, messageID int, newContent string) error
+	UpdateMessage(ctx context.Context, userID, messageID int, newContent string) (*model.Message, error)
 }
 
 type messageService struct {
@@ -81,19 +81,28 @@ func (s *messageService) ListMessagesInChat(ctx context.Context, userID, chatID,
 	return messages, nil
 }
 
-func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID int, newContent string) error {
+func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID int, newContent string) (*model.Message, error) {
 	message, err := s.messageRepo.GetMessageByID(ctx, messageID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if message == nil {
-		return ErrMessageNotFound
+		return nil, ErrMessageNotFound
 	}
 
 	if message.SenderID != userID {
-		return ErrAccessDenied
+		return nil, ErrAccessDenied
 	}
 
-	return s.messageRepo.UpdateMessage(ctx, messageID, newContent)
+	if err = s.messageRepo.UpdateMessage(ctx, messageID, newContent); err != nil {
+		return nil, err
+	}
+
+	message, err = s.messageRepo.GetMessageByID(ctx, messageID)
+	if err != nil {
+		return nil, err
+	}
+	
+	return message, nil
 }
