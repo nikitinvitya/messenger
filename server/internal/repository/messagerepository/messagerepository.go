@@ -97,8 +97,8 @@ func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (
 	var message model.Message
 	err := r.db.QueryRowContext(ctx, sqlReq, messageID).Scan(
 		&message.ID,
-		&message.ChatID,
 		&message.SenderID,
+		&message.ChatID,
 		&message.Content,
 		&message.CreatedAt,
 		&message.EditedAt,
