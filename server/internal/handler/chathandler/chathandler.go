@@ -7,7 +7,6 @@ import (
 	handler "github.com/nikitinvitya/messenger/internal/handler/response"
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/service/chatservice"
-	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"net/http"
 	"strconv"
 )
@@ -16,7 +15,7 @@ type ChatHandler struct {
 	chatService chatservice.ChatService
 }
 
-func NewChatHandler(chatService chatservice.ChatService, messageService messageservice.MessageService) *ChatHandler {
+func NewChatHandler(chatService chatservice.ChatService) *ChatHandler {
 	return &ChatHandler{
 		chatService: chatService,
 	}
