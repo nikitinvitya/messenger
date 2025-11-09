@@ -9,23 +9,23 @@ import (
 type Hub struct {
 	rooms      map[int]map[*Client]bool
 	Broadcast  chan *model.Message
-	register   chan *Client
-	unregister chan *Client
+	Register   chan *Client
+	Unregister chan *Client
 }
 
 func NewHub() *Hub {
 	return &Hub{
 		rooms:      make(map[int]map[*Client]bool),
 		Broadcast:  make(chan *model.Message),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		Register:   make(chan *Client),
+		Unregister: make(chan *Client),
 	}
 }
 
 func (h *Hub) Run() {
 	for {
 		select {
-		case client := <-h.register:
+		case client := <-h.Register:
 			room, ok := h.rooms[client.ChatID]
 			if !ok {
 				room = make(map[*Client]bool)
@@ -34,11 +34,11 @@ func (h *Hub) Run() {
 
 			room[client] = true
 			slog.Info("client registered", "userID", client.UserID, "chatID", client.ChatID)
-		case client := <-h.unregister:
+		case client := <-h.Unregister:
 			if room, ok := h.rooms[client.ChatID]; ok {
 				if _, ok = room[client]; ok {
 					delete(room, client)
-					close(client.send)
+					close(client.Send)
 					if len(room) == 0 {
 						delete(h.rooms, client.ChatID)
 					}
@@ -55,9 +55,9 @@ func (h *Hub) Run() {
 				}
 				for client := range room {
 					select {
-					case client.send <- messageJSON:
+					case client.Send <- messageJSON:
 					default:
-						close(client.send)
+						close(client.Send)
 						delete(room, client)
 					}
 				}
