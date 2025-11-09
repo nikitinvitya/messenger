@@ -5,6 +5,8 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/nikitinvitya/messenger/internal/handler/authhandler"
+	"github.com/nikitinvitya/messenger/internal/handler/chathandler"
+	"github.com/nikitinvitya/messenger/internal/handler/messagehandler"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
 	"net/http"
@@ -14,12 +16,16 @@ import (
 type APIHandlersDeps struct {
 	Auth      *authhandler.AuthHandler
 	User      *userhandler.UserHandler
+	Chat      *chathandler.ChatHandler
+	Message   *messagehandler.MessageHandler
 	JwtSecret string
 }
 
 type APIHandlers struct {
 	Auth      *authhandler.AuthHandler
 	User      *userhandler.UserHandler
+	Chat      *chathandler.ChatHandler
+	Message   *messagehandler.MessageHandler
 	jwtSecret string
 }
 
@@ -27,6 +33,8 @@ func NewAPIHandlers(deps APIHandlersDeps) *APIHandlers {
 	return &APIHandlers{
 		Auth:      deps.Auth,
 		User:      deps.User,
+		Chat:      deps.Chat,
+		Message:   deps.Message,
 		jwtSecret: deps.JwtSecret,
 	}
 }
@@ -62,6 +70,17 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 			r.Use(middleware.Auth(h.jwtSecret))
 			r.Route("/users", func(r chi.Router) {
 				r.Get("/me", h.User.GetMyProfile)
+			})
+
+			r.Route("/chats", func(r chi.Router) {
+				r.Post("/", h.Chat.CreateChat)
+				r.Get("/", h.Chat.ListUserChats)
+				r.Get("/{chatID}/messages", h.Message.ListMessagesInChat)
+				r.Post("/{chatID}/messages", h.Message.CreateMessage)
+			})
+
+			r.Route("/messages", func(r chi.Router) {
+				r.Put("/{messageID}", h.Message.UpdateMessage)
 			})
 		})
 	})
