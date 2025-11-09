@@ -9,6 +9,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/handler/messagehandler"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
+	"github.com/nikitinvitya/messenger/internal/handler/websockethandler"
 	"net/http"
 	"os"
 )
@@ -18,6 +19,7 @@ type APIHandlersDeps struct {
 	User      *userhandler.UserHandler
 	Chat      *chathandler.ChatHandler
 	Message   *messagehandler.MessageHandler
+	Websocket *websockethandler.WebsocketHandler
 	JwtSecret string
 }
 
@@ -26,6 +28,7 @@ type APIHandlers struct {
 	User      *userhandler.UserHandler
 	Chat      *chathandler.ChatHandler
 	Message   *messagehandler.MessageHandler
+	Websocket *websockethandler.WebsocketHandler
 	jwtSecret string
 }
 
@@ -35,6 +38,7 @@ func NewAPIHandlers(deps APIHandlersDeps) *APIHandlers {
 		User:      deps.User,
 		Chat:      deps.Chat,
 		Message:   deps.Message,
+		Websocket: deps.Websocket,
 		jwtSecret: deps.JwtSecret,
 	}
 }
@@ -82,6 +86,8 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 			r.Route("/messages", func(r chi.Router) {
 				r.Put("/{messageID}", h.Message.UpdateMessage)
 			})
+
+			r.Get("/ws/chats/{chatID}", h.Websocket.ServeWs)
 		})
 	})
 
