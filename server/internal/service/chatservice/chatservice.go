@@ -9,6 +9,7 @@ import (
 type ChatService interface {
 	CreateChat(ctx context.Context, participantIDs []int, creatorID int) (int, error)
 	ListUserChats(ctx context.Context, userID int) ([]model.Chat, error)
+	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 }
 
 type chatService struct {
@@ -50,4 +51,8 @@ func (s *chatService) ListUserChats(ctx context.Context, userID int) ([]model.Ch
 	}
 
 	return chats, nil
+}
+
+func (s *chatService) IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error) {
+	return s.repo.IsUserInChat(ctx, userID, chatID)
 }
