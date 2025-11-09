@@ -6,6 +6,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
 	"github.com/nikitinvitya/messenger/internal/repository/messagerepository"
+	"github.com/nikitinvitya/messenger/internal/websocket"
 	"github.com/nikitinvitya/messenger/pkg/utils"
 )
 
@@ -23,12 +24,14 @@ type MessageService interface {
 type messageService struct {
 	chatRepo    chatrepository.ChatRepository
 	messageRepo messagerepository.MessageRepository
+	hub         *websocket.Hub
 }
 
-func NewMessageService(chatRepo chatrepository.ChatRepository, messageRepo messagerepository.MessageRepository) MessageService {
+func NewMessageService(chatRepo chatrepository.ChatRepository, messageRepo messagerepository.MessageRepository, hub *websocket.Hub) MessageService {
 	return &messageService{
 		chatRepo:    chatRepo,
 		messageRepo: messageRepo,
+		hub:         hub,
 	}
 }
 
@@ -58,6 +61,8 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 	if err != nil {
 		return nil, err
 	}
+
+	s.hub.Broadcast <- finalMessage
 
 	return finalMessage, nil
 }
@@ -103,6 +108,6 @@ func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID in
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return message, nil
 }

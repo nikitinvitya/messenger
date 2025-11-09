@@ -12,6 +12,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/handler/chathandler"
 	"github.com/nikitinvitya/messenger/internal/handler/messagehandler"
 	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
+	"github.com/nikitinvitya/messenger/internal/handler/websockethandler"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
 	"github.com/nikitinvitya/messenger/internal/repository/messagerepository"
 	"github.com/nikitinvitya/messenger/internal/repository/userrepository"
@@ -19,6 +20,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/service/chatservice"
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"github.com/nikitinvitya/messenger/internal/service/userservice"
+	"github.com/nikitinvitya/messenger/internal/websocket"
 	"log"
 	"log/slog"
 	"net/http"
@@ -58,6 +60,10 @@ func main() {
 	}
 	slog.Info("Successfully connected to the database!")
 
+	hub := websocket.NewHub()
+	go hub.Run()
+	slog.Info("Websocket Hub started")
+
 	userRepo := userrepository.NewUserRepository(db)
 	chatRepo := chatrepository.NewChatRepository(db)
 	messageRepo := messagerepository.NewMessageRepository(db)
@@ -65,18 +71,20 @@ func main() {
 	authService := authservice.NewAuthService(userRepo, jwtSecret)
 	userService := userservice.NewUserService(userRepo)
 	chatService := chatservice.NewChatService(chatRepo)
-	messageService := messageservice.NewMessageService(chatRepo, messageRepo)
+	messageService := messageservice.NewMessageService(chatRepo, messageRepo, hub)
 
 	authHandler := authhandler.NewAuthHandler(authService)
 	userHandler := userhandler.NewUserHandler(userService)
 	chatHandler := chathandler.NewChatHandler(chatService)
 	messageHandler := messagehandler.NewMessageHandler(messageService)
+	websocketHandler := websockethandler.NewWebsocketHandler(hub, chatService)
 
 	apiHandlersDeps := handler.APIHandlersDeps{
 		Auth:      authHandler,
 		User:      userHandler,
 		Chat:      chatHandler,
 		Message:   messageHandler,
+		Websocket: websocketHandler,
 		JwtSecret: jwtSecret,
 	}
 
