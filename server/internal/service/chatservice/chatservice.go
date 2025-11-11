@@ -2,12 +2,20 @@ package chatservice
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
 )
 
+var (
+	ErrInvalidParticipantsCount = errors.New("private chat must have exactly 2 participants")
+	ErrInvalidChatType          = errors.New("unknown chat types")
+	ErrInvalidChatName          = errors.New("invalid chat name")
+)
+
 type ChatService interface {
-	CreateChat(ctx context.Context, participantIDs []int, creatorID int) (int, error)
+	CreateChat(ctx context.Context, participantIDs []int, typeChat string, chatName *string, creatorID int) (int, error)
 	ListUserChats(ctx context.Context, userID int) ([]model.Chat, error)
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 }
@@ -22,7 +30,7 @@ func NewChatService(repo chatrepository.ChatRepository) ChatService {
 	}
 }
 
-func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, creatorID int) (int, error) {
+func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chatType string, chatName *string, creatorID int) (int, error) {
 	allParticipants := make(map[int]struct{})
 
 	allParticipants[creatorID] = struct{}{}
@@ -36,12 +44,30 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, crea
 		finalUserIDs = append(finalUserIDs, id)
 	}
 
-	chatID, err := s.repo.CreateChat(ctx, nil, finalUserIDs)
-	if err != nil {
-		return 0, err
+	if chatType == "private" {
+		if len(finalUserIDs) != 2 {
+			return 0, ErrInvalidParticipantsCount
+		}
+		existingChatID, err := s.repo.FindPrivateChatByParticipants(ctx, finalUserIDs[0], finalUserIDs[1])
+
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+
+		if err == nil {
+			return existingChatID, nil
+		}
+
+		return s.repo.CreateChat(ctx, nil, chatType, finalUserIDs)
+	} else if chatType == "group" {
+		if chatName == nil || *chatName == "" {
+			return 0, ErrInvalidChatName
+		}
+
+		return s.repo.CreateChat(ctx, chatName, chatType, finalUserIDs)
 	}
 
-	return chatID, nil
+	return 0, ErrInvalidChatType
 }
 
 func (s *chatService) ListUserChats(ctx context.Context, userID int) ([]model.Chat, error) {
