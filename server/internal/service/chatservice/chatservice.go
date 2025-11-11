@@ -51,7 +51,7 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chat
 		existingChatID, err := s.repo.FindPrivateChatByParticipants(ctx, finalUserIDs[0], finalUserIDs[1])
 
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return 0, nil
+			return 0, err
 		}
 
 		if err == nil {
