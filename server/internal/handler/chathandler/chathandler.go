@@ -1,6 +1,7 @@
 package chathandler
 
 import (
+	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nikitinvitya/messenger/internal/handler/helper"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
@@ -35,15 +36,30 @@ func (h *ChatHandler) CreateChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var requestBody struct {
-		UserIDs []int `json:"user_ids" validate:"required,min=1,dive,gt=0"`
+		UserIDs  []int   `json:"user_ids" validate:"required,min=1,dive,gt=0"`
+		Name     *string `json:"name,omitempty"`
+		ChatType string  `json:"chat_type"`
 	}
 
 	if !helper.ValidateRequest(w, r, &requestBody) {
 		return
 	}
 
-	chatID, err := h.chatService.CreateChat(r.Context(), requestBody.UserIDs, creatorID)
+	chatID, err := h.chatService.CreateChat(r.Context(), requestBody.UserIDs, requestBody.ChatType, requestBody.Name, creatorID)
 	if err != nil {
+		if errors.Is(err, chatservice.ErrInvalidChatName) {
+			handler.ClientErrorResponse(w, http.StatusBadRequest, "Invalid chat name")
+			return
+		}
+		if errors.Is(err, chatservice.ErrInvalidChatType) {
+			handler.ClientErrorResponse(w, http.StatusBadRequest, "Invalid chat type")
+			return
+		}
+		if errors.Is(err, chatservice.ErrInvalidParticipantsCount) {
+			handler.ClientErrorResponse(w, http.StatusBadRequest, "Invalid participant count")
+			return
+		}
+
 		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to create chat", err)
 		return
 	}

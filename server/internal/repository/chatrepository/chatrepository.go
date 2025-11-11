@@ -8,9 +8,10 @@ import (
 )
 
 type ChatRepository interface {
-	CreateChat(ctx context.Context, name *string, userIDs []int) (int, error)
+	CreateChat(ctx context.Context, name *string, chatType string, userIDs []int) (int, error)
 	ListUserChats(ctx context.Context, userID int) ([]model.Chat, error)
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
+	FindPrivateChatByParticipants(ctx context.Context, userID1 int, userID2 int) (int, error)
 }
 
 type chatRepository struct {
@@ -23,16 +24,16 @@ func NewChatRepository(db *sql.DB) ChatRepository {
 	}
 }
 
-func (r *chatRepository) CreateChat(ctx context.Context, name *string, userIDs []int) (int, error) {
+func (r *chatRepository) CreateChat(ctx context.Context, name *string, chatType string, userIDs []int) (int, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
 
-	sqlReqCreateChat := `INSERT INTO chats (name) VALUES ($1) RETURNING id`
+	sqlReqCreateChat := `INSERT INTO chats (name, type) VALUES ($1, $2) RETURNING id`
 	var chatID int
-	if err = tx.QueryRowContext(ctx, sqlReqCreateChat, name).Scan(&chatID); err != nil {
+	if err = tx.QueryRowContext(ctx, sqlReqCreateChat, name, chatType).Scan(&chatID); err != nil {
 		return 0, fmt.Errorf("failed to create chat: %w", err)
 	}
 
@@ -101,4 +102,20 @@ func (r *chatRepository) IsUserInChat(ctx context.Context, userID int, chatID in
 
 	return exists, nil
 
+}
+
+func (r *chatRepository) FindPrivateChatByParticipants(ctx context.Context, userID1 int, userID2 int) (int, error) {
+	sqlReq := `	SELECT cp.chat_id
+			   	FROM chat_participants cp
+			   	JOIN chats c ON cp.chat_id = c.id
+			   	WHERE cp.user_id IN ($1, $2) AND c.type = 'private'
+			   	GROUP BY cp.chat_id
+			   	HAVING COUNT(DISTINCT cp.user_id) = 2`
+
+	var chatID int
+	if err := r.db.QueryRowContext(ctx, sqlReq, userID1, userID2).Scan(&chatID); err != nil {
+		return 0, err
+	}
+
+	return chatID, nil
 }
