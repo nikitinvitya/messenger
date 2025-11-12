@@ -89,6 +89,7 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 
 			r.Route("/messages", func(r chi.Router) {
 				r.Put("/{messageID}", h.Message.UpdateMessage)
+				r.Delete("/{messageID}", h.Message.DeleteMessage)
 			})
 
 			r.Get("/ws/chats/{chatID}", h.Websocket.ServeWs)
