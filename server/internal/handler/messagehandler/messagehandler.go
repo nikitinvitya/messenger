@@ -57,6 +57,9 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, messageservice.ErrAccessDenied):
 			handler.ClientErrorResponse(w, http.StatusForbidden, "You are not a member of this chat")
 			return
+		case errors.Is(err, messageservice.ErrUserBlocked):
+			handler.ClientErrorResponse(w, http.StatusForbidden, "You cannot send messages in this chat")
+			return
 		default:
 			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to create message", err)
 			return
