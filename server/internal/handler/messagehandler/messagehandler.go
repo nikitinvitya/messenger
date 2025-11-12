@@ -164,3 +164,41 @@ func (h *MessageHandler) UpdateMessage(w http.ResponseWriter, r *http.Request) {
 
 	handler.SuccessResponse(w, http.StatusOK, message)
 }
+
+func (h *MessageHandler) DeleteMessage(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Invalid user ID in token", err)
+		return
+	}
+
+	messageIDStr := chi.URLParam(r, "messageID")
+	messageID, err := strconv.Atoi(messageIDStr)
+	if err != nil {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, "Invalid message ID in URL")
+		return
+	}
+
+	_, err = h.messageService.DeleteMessage(r.Context(), userID, messageID)
+	if err != nil {
+		switch {
+		case errors.Is(err, messageservice.ErrAccessDenied):
+			handler.ClientErrorResponse(w, http.StatusForbidden, "You can't delete this message")
+			return
+		case errors.Is(err, messageservice.ErrMessageNotFound):
+			handler.ClientErrorResponse(w, http.StatusNotFound, "Message not found")
+			return
+		default:
+			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to delete message", err)
+			return
+		}
+	}
+
+	handler.SuccessResponse(w, http.StatusNoContent, nil)
+}
