@@ -22,6 +22,7 @@ type MessageService interface {
 	CreateMessage(ctx context.Context, senderID, chatID int, content string) (*model.Message, error)
 	ListMessagesInChat(ctx context.Context, userID, chatID, limit, offset int) ([]model.Message, error)
 	UpdateMessage(ctx context.Context, userID, messageID int, newContent string) (*model.Message, error)
+	DeleteMessage(ctx context.Context, userID, messageID int) (*model.Message, error)
 }
 
 type messageService struct {
@@ -110,7 +111,10 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 		return nil, err
 	}
 
-	s.hub.Broadcast <- finalMessage
+	s.hub.Broadcast <- websocket.Event{
+		Type:    "create_message",
+		Payload: finalMessage,
+	}
 
 	return finalMessage, nil
 }
@@ -155,6 +159,41 @@ func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID in
 	message, err = s.messageRepo.GetMessageByID(ctx, messageID)
 	if err != nil {
 		return nil, err
+	}
+
+	s.hub.Broadcast <- websocket.Event{
+		Type:    "update_message",
+		Payload: message,
+	}
+
+	return message, nil
+}
+
+func (s *messageService) DeleteMessage(ctx context.Context, userID, messageID int) (*model.Message, error) {
+	message, err := s.messageRepo.GetMessageByID(ctx, messageID)
+	if err != nil {
+		return nil, err
+	}
+	if message == nil {
+		return nil, ErrMessageNotFound
+	}
+
+	if userID != message.SenderID {
+		return nil, ErrAccessDenied
+	}
+
+	if err = s.messageRepo.DeleteMessage(ctx, messageID); err != nil {
+		return nil, err
+	}
+
+	deletePayload := &model.DeletedMessagePayload{
+		ID:     messageID,
+		ChatID: message.ChatID,
+	}
+
+	s.hub.Broadcast <- websocket.Event{
+		Type:    "delete_message",
+		Payload: deletePayload,
 	}
 
 	return message, nil

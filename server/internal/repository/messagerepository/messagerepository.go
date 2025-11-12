@@ -13,6 +13,7 @@ type MessageRepository interface {
 	ListMessagesInChat(ctx context.Context, chatID int, limit, offset int) ([]model.Message, error)
 	UpdateMessage(ctx context.Context, messageID int, newContent string) error
 	GetMessageByID(ctx context.Context, messageID int) (*model.Message, error)
+	DeleteMessage(ctx context.Context, messageID int) error
 }
 
 type messageRepository struct {
@@ -112,4 +113,24 @@ func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (
 	}
 
 	return &message, nil
+}
+
+func (r *messageRepository) DeleteMessage(ctx context.Context, messageID int) error {
+	sqlReq := `DELETE FROM messages WHERE id = $1`
+
+	result, err := r.db.ExecContext(ctx, sqlReq, messageID)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }

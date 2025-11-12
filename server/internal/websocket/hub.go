@@ -2,13 +2,21 @@ package websocket
 
 import (
 	"encoding/json"
-	"github.com/nikitinvitya/messenger/internal/model"
 	"log/slog"
 )
 
+type Event struct {
+	Type    string      `json:"type"`
+	Payload interface{} `json:"payload"`
+}
+
+type Broadcaster interface {
+	GetChatID() int
+}
+
 type Hub struct {
 	rooms      map[int]map[*Client]bool
-	Broadcast  chan *model.Message
+	Broadcast  chan Event
 	Register   chan *Client
 	Unregister chan *Client
 }
@@ -16,7 +24,7 @@ type Hub struct {
 func NewHub() *Hub {
 	return &Hub{
 		rooms:      make(map[int]map[*Client]bool),
-		Broadcast:  make(chan *model.Message),
+		Broadcast:  make(chan Event),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 	}
@@ -45,14 +53,23 @@ func (h *Hub) Run() {
 				}
 			}
 			slog.Info("client unregistered", "userID", client.UserID, "chatID", client.ChatID)
-		case message := <-h.Broadcast:
-			if room, ok := h.rooms[message.ChatID]; ok {
-				slog.Info("broadcasting message", "chatID", message.ChatID, "content", message.Content, "clients_in_room", len(room))
-				messageJSON, err := json.Marshal(message)
+		case event := <-h.Broadcast:
+			payloadWithChatID, ok := event.Payload.(Broadcaster)
+			if !ok {
+				slog.Error("broadcast event payload does not implement Broadcaster interface")
+				continue
+			}
+			chatID := payloadWithChatID.GetChatID()
+
+			if room, ok := h.rooms[chatID]; ok {
+				slog.Info("broadcasting event", "type", event.Type, "chatID", chatID, "clients_in_room", len(room))
+
+				messageJSON, err := json.Marshal(event)
 				if err != nil {
 					slog.Error("failed to marshal message for broadcast", "error", err)
 					continue
 				}
+
 				for client := range room {
 					select {
 					case client.Send <- messageJSON:
