@@ -3,6 +3,7 @@ package chatrepository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/nikitinvitya/messenger/internal/model"
 )
@@ -12,6 +13,8 @@ type ChatRepository interface {
 	ListUserChats(ctx context.Context, userID int) ([]model.Chat, error)
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 	FindPrivateChatByParticipants(ctx context.Context, userID1 int, userID2 int) (int, error)
+	GetChatByID(ctx context.Context, chatID int) (*model.Chat, error)
+	ListChatParticipantsID(ctx context.Context, chatID int) ([]int, error)
 }
 
 type chatRepository struct {
@@ -118,4 +121,43 @@ func (r *chatRepository) FindPrivateChatByParticipants(ctx context.Context, user
 	}
 
 	return chatID, nil
+}
+
+func (r *chatRepository) GetChatByID(ctx context.Context, chatID int) (*model.Chat, error) {
+	sqlReq := `SELECT id, name, type, created_at from chats WHERE id = $1`
+
+	var chat model.Chat
+	if err := r.db.QueryRowContext(ctx, sqlReq, chatID).Scan(&chat.ID, &chat.Name, &chat.Type, &chat.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return &chat, nil
+}
+
+func (r *chatRepository) ListChatParticipantsID(ctx context.Context, chatID int) ([]int, error) {
+	sqlReq := `SELECT user_id FROM chat_participants WHERE chat_id = $1`
+	rows, err := r.db.QueryContext(ctx, sqlReq, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userIDs []int
+	for rows.Next() {
+		var userID int
+		if err = rows.Scan(&userID); err != nil {
+			return userIDs, err
+		}
+		userIDs = append(userIDs, userID)
+	}
+
+	if err = rows.Err(); err != nil {
+		return userIDs, err
+	}
+
+	return userIDs, nil
 }

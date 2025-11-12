@@ -9,14 +9,17 @@ import (
 	server "github.com/nikitinvitya/messenger"
 	"github.com/nikitinvitya/messenger/internal/handler"
 	"github.com/nikitinvitya/messenger/internal/handler/authhandler"
+	"github.com/nikitinvitya/messenger/internal/handler/blocklisthandler"
 	"github.com/nikitinvitya/messenger/internal/handler/chathandler"
 	"github.com/nikitinvitya/messenger/internal/handler/messagehandler"
 	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
 	"github.com/nikitinvitya/messenger/internal/handler/websockethandler"
+	"github.com/nikitinvitya/messenger/internal/repository/blocklistrepository"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
 	"github.com/nikitinvitya/messenger/internal/repository/messagerepository"
 	"github.com/nikitinvitya/messenger/internal/repository/userrepository"
 	"github.com/nikitinvitya/messenger/internal/service/authservice"
+	"github.com/nikitinvitya/messenger/internal/service/blocklistservice"
 	"github.com/nikitinvitya/messenger/internal/service/chatservice"
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"github.com/nikitinvitya/messenger/internal/service/userservice"
@@ -67,17 +70,20 @@ func main() {
 	userRepo := userrepository.NewUserRepository(db)
 	chatRepo := chatrepository.NewChatRepository(db)
 	messageRepo := messagerepository.NewMessageRepository(db)
+	blocklistRepo := blocklistrepository.NewBlocklistRepository(db)
 
 	authService := authservice.NewAuthService(userRepo, jwtSecret)
 	userService := userservice.NewUserService(userRepo)
 	chatService := chatservice.NewChatService(chatRepo)
-	messageService := messageservice.NewMessageService(chatRepo, messageRepo, hub)
+	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo)
+	messageService := messageservice.NewMessageService(chatRepo, messageRepo, hub, blocklistService)
 
 	authHandler := authhandler.NewAuthHandler(authService)
 	userHandler := userhandler.NewUserHandler(userService)
 	chatHandler := chathandler.NewChatHandler(chatService)
 	messageHandler := messagehandler.NewMessageHandler(messageService)
 	websocketHandler := websockethandler.NewWebsocketHandler(hub, chatService)
+	blocklistHandler := blocklisthandler.NewBlocklistHandler(blocklistService)
 
 	apiHandlersDeps := handler.APIHandlersDeps{
 		Auth:      authHandler,
@@ -85,6 +91,7 @@ func main() {
 		Chat:      chatHandler,
 		Message:   messageHandler,
 		Websocket: websocketHandler,
+		Blocklist: blocklistHandler,
 		JwtSecret: jwtSecret,
 	}
 

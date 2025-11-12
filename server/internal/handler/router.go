@@ -5,6 +5,7 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/nikitinvitya/messenger/internal/handler/authhandler"
+	"github.com/nikitinvitya/messenger/internal/handler/blocklisthandler"
 	"github.com/nikitinvitya/messenger/internal/handler/chathandler"
 	"github.com/nikitinvitya/messenger/internal/handler/messagehandler"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
@@ -20,6 +21,7 @@ type APIHandlersDeps struct {
 	Chat      *chathandler.ChatHandler
 	Message   *messagehandler.MessageHandler
 	Websocket *websockethandler.WebsocketHandler
+	Blocklist *blocklisthandler.BlocklistHandler
 	JwtSecret string
 }
 
@@ -29,6 +31,7 @@ type APIHandlers struct {
 	Chat      *chathandler.ChatHandler
 	Message   *messagehandler.MessageHandler
 	Websocket *websockethandler.WebsocketHandler
+	Blocklist *blocklisthandler.BlocklistHandler
 	jwtSecret string
 }
 
@@ -39,6 +42,7 @@ func NewAPIHandlers(deps APIHandlersDeps) *APIHandlers {
 		Chat:      deps.Chat,
 		Message:   deps.Message,
 		Websocket: deps.Websocket,
+		Blocklist: deps.Blocklist,
 		jwtSecret: deps.JwtSecret,
 	}
 }
@@ -88,6 +92,11 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 			})
 
 			r.Get("/ws/chats/{chatID}", h.Websocket.ServeWs)
+
+			r.Route("/blocklist", func(r chi.Router) {
+				r.Post("/{userID}", h.Blocklist.Block)
+				r.Delete("/{userID}", h.Blocklist.Unblock)
+			})
 		})
 	})
 

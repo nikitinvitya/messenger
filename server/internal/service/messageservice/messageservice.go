@@ -6,6 +6,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
 	"github.com/nikitinvitya/messenger/internal/repository/messagerepository"
+	"github.com/nikitinvitya/messenger/internal/service/blocklistservice"
 	"github.com/nikitinvitya/messenger/internal/websocket"
 	"github.com/nikitinvitya/messenger/pkg/utils"
 )
@@ -13,6 +14,8 @@ import (
 var (
 	ErrAccessDenied    = errors.New("access to the resource is denied")
 	ErrMessageNotFound = errors.New("message not found")
+	ErrChatNotFound    = errors.New("chat not found")
+	ErrUserBlocked     = errors.New("user is blocked")
 )
 
 type MessageService interface {
@@ -22,20 +25,65 @@ type MessageService interface {
 }
 
 type messageService struct {
-	chatRepo    chatrepository.ChatRepository
-	messageRepo messagerepository.MessageRepository
-	hub         *websocket.Hub
+	chatRepo     chatrepository.ChatRepository
+	messageRepo  messagerepository.MessageRepository
+	hub          *websocket.Hub
+	blockService blocklistservice.BlocklistService
 }
 
-func NewMessageService(chatRepo chatrepository.ChatRepository, messageRepo messagerepository.MessageRepository, hub *websocket.Hub) MessageService {
+func NewMessageService(chatRepo chatrepository.ChatRepository, messageRepo messagerepository.MessageRepository, hub *websocket.Hub, blockService blocklistservice.BlocklistService) MessageService {
 	return &messageService{
-		chatRepo:    chatRepo,
-		messageRepo: messageRepo,
-		hub:         hub,
+		chatRepo:     chatRepo,
+		messageRepo:  messageRepo,
+		hub:          hub,
+		blockService: blockService,
 	}
 }
 
 func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int, content string) (*model.Message, error) {
+	chat, err := s.chatRepo.GetChatByID(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	if chat == nil {
+		return nil, ErrChatNotFound
+	}
+
+	if chat.Type == "private" {
+		participantIDs, err := s.chatRepo.ListChatParticipantsID(ctx, chatID)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(participantIDs) > 1 {
+			var recipientID int
+			for _, id := range participantIDs {
+				if id != senderID {
+					recipientID = id
+					break
+				}
+			}
+
+			if recipientID != 0 {
+				isBlockedRecipient, err := s.blockService.CheckBlock(ctx, senderID, recipientID)
+				if err != nil {
+					return nil, err
+				}
+				if isBlockedRecipient {
+					return nil, ErrUserBlocked
+				}
+				isBlockedSender, err := s.blockService.CheckBlock(ctx, recipientID, senderID)
+				if err != nil {
+					return nil, err
+				}
+				if isBlockedSender {
+					return nil, ErrUserBlocked
+				}
+			}
+		}
+	}
+
 	isParticipant, err := s.chatRepo.IsUserInChat(ctx, senderID, chatID)
 	if err != nil {
 		return nil, err
