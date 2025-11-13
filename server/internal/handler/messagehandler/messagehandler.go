@@ -62,7 +62,7 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 			handler.ClientErrorResponse(w, http.StatusForbidden, "You cannot send messages in this chat")
 			return
 		case errors.Is(err, messageservice.ErrCannotReplyToMessage):
-			handler.ClientErrorResponse(w, http.StatusNotFound, "You cannot reply to this message")
+			handler.ClientErrorResponse(w, http.StatusBadRequest, "You cannot reply to this message")
 			return
 		default:
 			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to create message", err)
@@ -200,6 +200,49 @@ func (h *MessageHandler) DeleteMessage(w http.ResponseWriter, r *http.Request) {
 			return
 		default:
 			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to delete message", err)
+			return
+		}
+	}
+
+	handler.SuccessResponse(w, http.StatusNoContent, nil)
+}
+
+func (h *MessageHandler) ForwardMessage(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Invalid user ID in token", err)
+		return
+	}
+
+	destinationChatIDStr := chi.URLParam(r, "chatID")
+	destinationChatID, err := strconv.Atoi(destinationChatIDStr)
+	if err != nil {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, "Invalid chat ID in URL")
+		return
+	}
+
+	var requestBody struct {
+		MessageIDs []int `json:"message_ids" validate:"required,min=1,dive,gt=0"`
+	}
+
+	if !helper.ValidateRequest(w, r, &requestBody) {
+		return
+	}
+
+	err = h.messageService.ForwardMessage(r.Context(), userID, destinationChatID, requestBody.MessageIDs)
+	if err != nil {
+		switch {
+		case errors.Is(err, messageservice.ErrAccessDenied):
+			handler.ClientErrorResponse(w, http.StatusForbidden, "You can't forward this messages")
+			return
+		default:
+			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to forward message", err)
 			return
 		}
 	}
