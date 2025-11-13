@@ -12,14 +12,15 @@ import (
 )
 
 var (
-	ErrAccessDenied    = errors.New("access to the resource is denied")
-	ErrMessageNotFound = errors.New("message not found")
-	ErrChatNotFound    = errors.New("chat not found")
-	ErrUserBlocked     = errors.New("user is blocked")
+	ErrAccessDenied         = errors.New("access to the resource is denied")
+	ErrMessageNotFound      = errors.New("message not found")
+	ErrChatNotFound         = errors.New("chat not found")
+	ErrUserBlocked          = errors.New("user is blocked")
+	ErrCannotReplyToMessage = errors.New("you can't reply to this message")
 )
 
 type MessageService interface {
-	CreateMessage(ctx context.Context, senderID, chatID int, content string) (*model.Message, error)
+	CreateMessage(ctx context.Context, senderID, chatID int, content string, replyToMessageID *int) (*model.Message, error)
 	ListMessagesInChat(ctx context.Context, userID, chatID, limit, offset int) ([]model.Message, error)
 	UpdateMessage(ctx context.Context, userID, messageID int, newContent string) (*model.Message, error)
 	DeleteMessage(ctx context.Context, userID, messageID int) (*model.Message, error)
@@ -41,7 +42,7 @@ func NewMessageService(chatRepo chatrepository.ChatRepository, messageRepo messa
 	}
 }
 
-func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int, content string) (*model.Message, error) {
+func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int, content string, replyToMessageID *int) (*model.Message, error) {
 	chat, err := s.chatRepo.GetChatByID(ctx, chatID)
 	if err != nil {
 		return nil, err
@@ -94,10 +95,22 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 		return nil, ErrAccessDenied
 	}
 
+	if replyToMessageID != nil {
+		replyMessage, err := s.messageRepo.GetMessageByID(ctx, *replyToMessageID)
+		if err != nil {
+			return nil, err
+		}
+
+		if replyMessage == nil || replyMessage.ChatID != chatID {
+			return nil, ErrCannotReplyToMessage
+		}
+	}
+
 	message := &model.Message{
-		SenderID: senderID,
-		ChatID:   chatID,
-		Content:  content,
+		SenderID:         senderID,
+		ChatID:           chatID,
+		Content:          content,
+		ReplyToMessageID: replyToMessageID,
 	}
 
 	messageID, err := s.messageRepo.CreateMessage(ctx, message)
