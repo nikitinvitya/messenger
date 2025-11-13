@@ -24,6 +24,7 @@ type MessageService interface {
 	ListMessagesInChat(ctx context.Context, userID, chatID, limit, offset int) ([]model.Message, error)
 	UpdateMessage(ctx context.Context, userID, messageID int, newContent string) (*model.Message, error)
 	DeleteMessage(ctx context.Context, userID, messageID int) (*model.Message, error)
+	ForwardMessage(ctx context.Context, forwarderID, destinationChatID int, messageIDs []int) error
 }
 
 type messageService struct {
@@ -210,4 +211,54 @@ func (s *messageService) DeleteMessage(ctx context.Context, userID, messageID in
 	}
 
 	return message, nil
+}
+
+func (s *messageService) ForwardMessage(ctx context.Context, forwarderID, destinationChatID int, messageIDs []int) error {
+	isParticipant, err := s.chatRepo.IsUserInChat(ctx, forwarderID, destinationChatID)
+	if err != nil {
+		return err
+	}
+	if !isParticipant {
+		return ErrAccessDenied
+	}
+
+	for _, messageID := range messageIDs {
+		message, err := s.messageRepo.GetMessageByID(ctx, messageID)
+		if err != nil {
+			return err
+		}
+		isParticipant, err = s.chatRepo.IsUserInChat(ctx, forwarderID, message.ChatID)
+		if err != nil {
+			return err
+		}
+		if !isParticipant {
+			return ErrAccessDenied
+		}
+
+		forwardMessage := &model.Message{
+			ChatID:              destinationChatID,
+			SenderID:            forwarderID,
+			ForwardedFromUserID: &message.SenderID,
+			ForwardedFromChatID: &message.ChatID,
+			Content:             message.Content,
+			ReplyToMessageID:    nil,
+		}
+
+		_, err = s.messageRepo.CreateMessage(ctx, forwardMessage)
+		if err != nil {
+			return err
+		}
+
+		fullForwardedMessage, err := s.messageRepo.GetMessageByID(ctx, messageID)
+		if err != nil {
+			return err
+		}
+
+		s.hub.Broadcast <- websocket.Event{
+			Type:    "create_message",
+			Payload: fullForwardedMessage,
+		}
+	}
+
+	return nil
 }
