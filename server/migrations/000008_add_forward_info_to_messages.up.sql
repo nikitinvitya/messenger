@@ -1,0 +1,2 @@
+ALTER TABLE messages ADD COLUMN forwarded_from_user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE messages ADD COLUMN forwarded_from_chat_id INTEGER NULL REFERENCES chats(id) ON DELETE SET NULL;
