@@ -27,10 +27,24 @@ func NewMessageRepository(db *sql.DB) MessageRepository {
 }
 
 func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Message) (int, error) {
-	sqlReq := `INSERT INTO messages (chat_id, sender_id, content, reply_to_message_id) VALUES ($1, $2, $3, $4) RETURNING id`
+	sqlReq := `INSERT INTO messages (chat_id,
+    		    					 sender_id,
+    		    					 content,
+    		    					 reply_to_message_id,
+    		    					 forwarded_from_user_id,
+    		    					 forwarded_from_chat_id)
+			   VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 
 	var messageID int
-	err := r.db.QueryRowContext(ctx, sqlReq, message.ChatID, message.SenderID, message.Content, message.ReplyToMessageID).Scan(&messageID)
+	err := r.db.QueryRowContext(ctx,
+		sqlReq,
+		message.ChatID,
+		message.SenderID,
+		message.Content,
+		message.ReplyToMessageID,
+		message.ForwardedFromUserID,
+		message.ForwardedFromChatID,
+	).Scan(&messageID)
 	if err != nil {
 		return 0, err
 	}
@@ -39,7 +53,15 @@ func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Me
 }
 
 func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, limit, offset int) ([]model.Message, error) {
-	sqlReq := `SELECT id, chat_id, sender_id, content, created_at, edited_at, reply_to_message_id
+	sqlReq := `SELECT id,
+       				  chat_id,
+       				  sender_id,
+       				  content,
+       				  created_at,
+       				  edited_at,
+       				  reply_to_message_id,
+       				  forwarded_from_user_id,
+       				  forwarded_from_chat_id
 			   FROM messages
 			   WHERE chat_id = $1
 			   ORDER BY created_at DESC
@@ -54,7 +76,16 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 	var messages []model.Message
 	for rows.Next() {
 		var message model.Message
-		if err = rows.Scan(&message.ID, &message.ChatID, &message.SenderID, &message.Content, &message.CreatedAt, &message.EditedAt, &message.ReplyToMessageID); err != nil {
+		if err = rows.Scan(&message.ID,
+			&message.ChatID,
+			&message.SenderID,
+			&message.Content,
+			&message.CreatedAt,
+			&message.EditedAt,
+			&message.ReplyToMessageID,
+			&message.ForwardedFromUserID,
+			&message.ForwardedFromChatID,
+		); err != nil {
 			return messages, err
 		}
 
@@ -91,7 +122,7 @@ func (r *messageRepository) UpdateMessage(ctx context.Context, messageID int, ne
 }
 
 func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (*model.Message, error) {
-	sqlReq := `SELECT id, sender_id, chat_id, content, created_at, edited_at, reply_to_message_id
+	sqlReq := `SELECT id, sender_id, chat_id, content, created_at, edited_at, reply_to_message_id, forwarded_from_user_id, forwarded_from_chat_id
 			   FROM messages
 			   WHERE id = $1`
 
@@ -104,6 +135,8 @@ func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (
 		&message.CreatedAt,
 		&message.EditedAt,
 		&message.ReplyToMessageID,
+		&message.ForwardedFromUserID,
+		&message.ForwardedFromChatID,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
