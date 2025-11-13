@@ -44,14 +44,15 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var requestBody struct {
-		Content string `json:"content" validate:"required,min=1"`
+		Content          string `json:"content" validate:"required,min=1"`
+		ReplyToMessageID *int   `json:"reply_to_message_id,omitempty"`
 	}
 
 	if !helper.ValidateRequest(w, r, &requestBody) {
 		return
 	}
 
-	message, err := h.messageService.CreateMessage(r.Context(), userID, chatID, requestBody.Content)
+	message, err := h.messageService.CreateMessage(r.Context(), userID, chatID, requestBody.Content, requestBody.ReplyToMessageID)
 	if err != nil {
 		switch {
 		case errors.Is(err, messageservice.ErrAccessDenied):
@@ -59,6 +60,9 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 			return
 		case errors.Is(err, messageservice.ErrUserBlocked):
 			handler.ClientErrorResponse(w, http.StatusForbidden, "You cannot send messages in this chat")
+			return
+		case errors.Is(err, messageservice.ErrCannotReplyToMessage):
+			handler.ClientErrorResponse(w, http.StatusNotFound, "You cannot reply to this message")
 			return
 		default:
 			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to create message", err)
