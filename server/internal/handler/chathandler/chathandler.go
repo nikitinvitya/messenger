@@ -86,5 +86,5 @@ func (h *ChatHandler) ListUserChats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler.SuccessResponse(w, http.StatusOK, map[string][]model.Chat{"chats": chats})
+	handler.SuccessResponse(w, http.StatusOK, map[string][]model.ChatResponse{"chats": chats})
 }

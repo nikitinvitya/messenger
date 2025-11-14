@@ -15,6 +15,7 @@ type ChatRepository interface {
 	FindPrivateChatByParticipants(ctx context.Context, userID1 int, userID2 int) (int, error)
 	GetChatByID(ctx context.Context, chatID int) (*model.Chat, error)
 	ListChatParticipantsID(ctx context.Context, chatID int) ([]int, error)
+	ListChatParticipants(ctx context.Context, chatID int) ([]model.User, error)
 }
 
 type chatRepository struct {
@@ -61,7 +62,7 @@ func (r *chatRepository) CreateChat(ctx context.Context, name *string, chatType 
 }
 
 func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]model.Chat, error) {
-	sqlReq := `SELECT c.id, c.name, c.created_at
+	sqlReq := `SELECT c.id, c.name, c.created_at, c.type
 			   FROM chats C
 			   JOIN chat_participants CP ON CP.chat_id = c.id
 			   WHERE cp.user_id = $1
@@ -77,7 +78,7 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]model
 	for rows.Next() {
 		var chat model.Chat
 
-		if err = rows.Scan(&chat.ID, &chat.Name, &chat.CreatedAt); err != nil {
+		if err = rows.Scan(&chat.ID, &chat.Name, &chat.CreatedAt, &chat.Type); err != nil {
 			return chats, err
 		}
 
@@ -160,4 +161,33 @@ func (r *chatRepository) ListChatParticipantsID(ctx context.Context, chatID int)
 	}
 
 	return userIDs, nil
+}
+
+func (r *chatRepository) ListChatParticipants(ctx context.Context, chatID int) ([]model.User, error) {
+	sqlReq := `SELECT U.id, U.email, U.username, U.created_at
+			   FROM users U
+			   JOIN chat_participants CP ON CP.user_id = U.id
+			   WHERE CP.chat_id = $1`
+
+	rows, err := r.db.QueryContext(ctx, sqlReq, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []model.User
+	for rows.Next() {
+		var user model.User
+		if err = rows.Scan(&user.ID, &user.Email, &user.Username, &user.CreatedAt); err != nil {
+			return result, err
+		}
+
+		result = append(result, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return result, err
+	}
+
+	return result, nil
 }
