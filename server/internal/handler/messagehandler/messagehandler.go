@@ -7,7 +7,6 @@ import (
 	"github.com/nikitinvitya/messenger/internal/handler/helper"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	handler "github.com/nikitinvitya/messenger/internal/handler/response"
-	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"net/http"
 	"strconv"
@@ -120,7 +119,7 @@ func (h *MessageHandler) ListMessagesInChat(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	handler.SuccessResponse(w, http.StatusOK, map[string][]model.Message{"messages": messages})
+	handler.SuccessResponse(w, http.StatusOK, messages)
 }
 
 func (h *MessageHandler) UpdateMessage(w http.ResponseWriter, r *http.Request) {
