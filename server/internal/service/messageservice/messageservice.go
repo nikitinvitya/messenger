@@ -3,6 +3,7 @@ package messageservice
 import (
 	"context"
 	"errors"
+	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
 	"github.com/nikitinvitya/messenger/internal/repository/messagerepository"
@@ -21,7 +22,7 @@ var (
 
 type MessageService interface {
 	CreateMessage(ctx context.Context, senderID, chatID int, content string, replyToMessageID *int) (*model.Message, error)
-	ListMessagesInChat(ctx context.Context, userID, chatID, limit, offset int) ([]model.Message, error)
+	ListMessagesInChat(ctx context.Context, userID, chatID, limit, offset int) (*dto.ListMessagesResponse, error)
 	UpdateMessage(ctx context.Context, userID, messageID int, newContent string) (*model.Message, error)
 	DeleteMessage(ctx context.Context, userID, messageID int) (*model.Message, error)
 	ForwardMessage(ctx context.Context, forwarderID, destinationChatID int, messageIDs []int) error
@@ -133,7 +134,7 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 	return finalMessage, nil
 }
 
-func (s *messageService) ListMessagesInChat(ctx context.Context, userID, chatID, limit, offset int) ([]model.Message, error) {
+func (s *messageService) ListMessagesInChat(ctx context.Context, userID, chatID, limit, offset int) (*dto.ListMessagesResponse, error) {
 	isParticipant, err := s.chatRepo.IsUserInChat(ctx, userID, chatID)
 	if err != nil {
 		return nil, err
@@ -149,7 +150,54 @@ func (s *messageService) ListMessagesInChat(ctx context.Context, userID, chatID,
 	}
 	utils.Reverse(messages)
 
-	return messages, nil
+	chat, err := s.chatRepo.GetChatByID(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	if chat == nil {
+		return nil, ErrChatNotFound
+	}
+	participantIDs, err := s.chatRepo.ListChatParticipantsID(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	var response dto.ListMessagesResponse
+	response.Messages = messages
+
+	if chat.Type == "private" {
+		var recipientID int
+		for _, id := range participantIDs {
+			if id != userID {
+				recipientID = id
+				break
+			}
+		}
+
+		isRecipientBlocked, err := s.blockService.CheckBlock(ctx, userID, recipientID)
+		if err != nil {
+			return nil, err
+		}
+		if isRecipientBlocked {
+			response.BlockStatus = "recipient_blocked"
+			return &response, nil
+		}
+
+		isSenderBlocked, err := s.blockService.CheckBlock(ctx, recipientID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if isSenderBlocked {
+			response.BlockStatus = "sender_blocked"
+			return &response, nil
+		}
+
+		response.BlockStatus = "none"
+		return &response, nil
+	}
+
+	response.BlockStatus = "none"
+	return &response, nil
 }
 
 func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID int, newContent string) (*model.Message, error) {

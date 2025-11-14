@@ -3,10 +3,10 @@ package chathandler
 import (
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/handler/helper"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	handler "github.com/nikitinvitya/messenger/internal/handler/response"
-	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/service/chatservice"
 	"net/http"
 	"strconv"
@@ -86,5 +86,5 @@ func (h *ChatHandler) ListUserChats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler.SuccessResponse(w, http.StatusOK, map[string][]model.Chat{"chats": chats})
+	handler.SuccessResponse(w, http.StatusOK, map[string][]dto.ChatResponse{"chats": chats})
 }

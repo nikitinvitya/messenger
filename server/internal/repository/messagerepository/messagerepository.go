@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/model"
 )
 
 type MessageRepository interface {
 	CreateMessage(ctx context.Context, message *model.Message) (int, error)
-	ListMessagesInChat(ctx context.Context, chatID int, limit, offset int) ([]model.Message, error)
+	ListMessagesInChat(ctx context.Context, chatID int, limit, offset int) ([]*dto.MessageResponse, error)
 	UpdateMessage(ctx context.Context, messageID int, newContent string) error
 	GetMessageByID(ctx context.Context, messageID int) (*model.Message, error)
 	DeleteMessage(ctx context.Context, messageID int) error
@@ -52,19 +53,21 @@ func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Me
 	return messageID, nil
 }
 
-func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, limit, offset int) ([]model.Message, error) {
-	sqlReq := `SELECT id,
-       				  chat_id,
-       				  sender_id,
-       				  content,
-       				  created_at,
-       				  edited_at,
-       				  reply_to_message_id,
-       				  forwarded_from_user_id,
-       				  forwarded_from_chat_id
-			   FROM messages
-			   WHERE chat_id = $1
-			   ORDER BY created_at DESC
+func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, limit, offset int) ([]*dto.MessageResponse, error) {
+	sqlReq := `SELECT M.id,
+       				  M.chat_id,
+       				  M.content,
+       				  M.created_at,
+       				  M.edited_at,
+       				  M.reply_to_message_id,
+       				  M.forwarded_from_user_id,
+       				  M.forwarded_from_chat_id,
+					  U.id as sender_id, 
+					  U.username as sender_username
+			   FROM messages M
+			   JOIN users U on M.sender_id = U.id
+			   WHERE M.chat_id = $1
+			   ORDER BY M.created_at DESC
 			   LIMIT $2 OFFSET $3`
 
 	rows, err := r.db.QueryContext(ctx, sqlReq, chatID, limit, offset)
@@ -73,30 +76,36 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 	}
 	defer rows.Close()
 
-	var messages []model.Message
+	var messagesResponse []*dto.MessageResponse
 	for rows.Next() {
-		var message model.Message
-		if err = rows.Scan(&message.ID,
+
+		var message dto.MessageResponse
+		var senderInfo dto.SenderInfo
+
+		if err = rows.Scan(
+			&message.ID,
 			&message.ChatID,
-			&message.SenderID,
 			&message.Content,
 			&message.CreatedAt,
 			&message.EditedAt,
 			&message.ReplyToMessageID,
 			&message.ForwardedFromUserID,
 			&message.ForwardedFromChatID,
+			&senderInfo.ID,
+			&senderInfo.Username,
 		); err != nil {
-			return messages, err
+			return messagesResponse, err
 		}
 
-		messages = append(messages, message)
+		message.Sender = &senderInfo
+		messagesResponse = append(messagesResponse, &message)
 	}
 
 	if err = rows.Err(); err != nil {
-		return messages, err
+		return messagesResponse, err
 	}
 
-	return messages, nil
+	return messagesResponse, nil
 }
 
 func (r *messageRepository) UpdateMessage(ctx context.Context, messageID int, newContent string) error {
