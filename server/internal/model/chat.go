@@ -14,11 +14,3 @@ type ChatParticipant struct {
 	ChatID int `json:"chat_id"`
 	UserID int `json:"user_id"`
 }
-
-type ChatResponse struct {
-	ID           int       `json:"id"`
-	Name         *string   `json:"name,omitempty"`
-	Type         string    `json:"type"`
-	CreatedAt    time.Time `json:"created_at"`
-	Participants []User    `json:"participants"`
-}
