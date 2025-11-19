@@ -1,0 +1,28 @@
+.signInForm{
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 100%;
+
+  .errors {
+    color: red;
+    font-size: 0.875rem;
+  }
+
+  .formFooter {
+    display: flex;
+    justify-content: end;
+  }
+
+  .signInBtn {
+    padding: 8px 12px;
+    width: auto;
+
+    .signInBtn:disabled {
+      pointer-events: none;
+      opacity: 0.8;
+      cursor: default;
+    }
+  }
+}
+
