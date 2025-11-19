@@ -17,6 +17,11 @@
   .signUpBtn {
     padding: 8px 12px;
     width: auto;
+
+    .signUpBtn:disabled {
+      opacity: 0.8;
+      cursor: default;
+    }
   }
 }
 

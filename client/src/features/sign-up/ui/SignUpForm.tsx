@@ -10,12 +10,12 @@ import cls from './SignUpForm.module.scss'
 import {AppLink} from "@/shared/ui/AppLink/ui/AppLink";
 
 const signUpSchema = z.object({
-  email: z.email({ message: 'Invalid email format' }),
-  username: z.string().min(3, { message: 'Username must contain at least 3 characters' }),
-  password: z.string().min(8, { message: 'Password must contain at least 8 characters' }),
+  email: z.email({ error: 'Invalid email format' }),
+  username: z.string().min(3, { error: 'Username must contain at least 3 characters' }),
+  password: z.string().min(8, { error: 'Password must contain at least 8 characters' }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  error: "Passwords don't match",
   path: ["confirmPassword"],
 });
 
@@ -124,7 +124,7 @@ export function SignUpForm() {
       <AppLink href={'/login'} >Already have an account? Login</AppLink>
 
       <Group className={cls.formFooter}>
-        <Button type="submit" loading={isLoading} className={cls.signUpBtn}>
+        <Button type="submit" disabled={isLoading} loading={isLoading} className={cls.signUpBtn}>
           Create account
         </Button>
       </Group>
