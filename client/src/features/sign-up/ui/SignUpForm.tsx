@@ -121,7 +121,7 @@ export function SignUpForm() {
         {...form.getInputProps('confirmPassword')}
       />
 
-      <AppLink href={'/login'} >Already have an account? Login</AppLink>
+      <AppLink href={'/sign-in'} >Already have an account? Login</AppLink>
 
       <Group className={cls.formFooter}>
         <Button type="submit" disabled={isLoading} loading={isLoading} className={cls.signUpBtn}>
