@@ -6,6 +6,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/handler/response"
 	"github.com/nikitinvitya/messenger/internal/service/authservice"
 	"net/http"
+	"time"
 )
 
 type AuthHandler struct {
@@ -65,6 +66,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenPayload := map[string]string{"token": token}
-	handler.SuccessResponse(w, http.StatusOK, tokenPayload)
+	expirationTime := time.Now().Add(authservice.ExpirationTime)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt_token",
+		Value:    token,
+		Expires:  expirationTime,
+		HttpOnly: true,
+		Path:     "/",
+		// Secure:   true,
+		// SameSite: http.SameSiteLaxMode,
+	})
+
+	responsePayload := map[string]string{"message": "Login successful"}
+	handler.SuccessResponse(w, http.StatusOK, responsePayload)
 }
