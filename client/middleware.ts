@@ -1,0 +1,29 @@
+import { type NextRequest, NextResponse } from 'next/server';
+import { AppRoutes, protectedRoutePatterns } from '@/shared/config/routes';
+import {JWT_TOKEN_KEY} from "@/shared/constants/cookie";
+
+export function middleware(req: NextRequest) {
+  const token = req.cookies.get(JWT_TOKEN_KEY);
+  const { pathname } = req.nextUrl;
+
+  const publicPaths = [AppRoutes.login, AppRoutes.signup];
+
+  const isProtectedRoute = protectedRoutePatterns.some(pattern => pattern.test(pathname));
+  const isPublicRoute = publicPaths.some(path => path === pathname);
+
+  if (!token && isProtectedRoute) {
+    return NextResponse.redirect(new URL(AppRoutes.login, req.url));
+  }
+
+  if (token && isPublicRoute) {
+    return NextResponse.redirect(new URL(AppRoutes.chats, req.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+}
