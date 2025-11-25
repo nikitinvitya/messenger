@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+const (
+	JWT_TOKEN_KEY = "jwt_token"
+)
+
 type AuthHandler struct {
 	service authservice.AuthService
 }
@@ -68,7 +72,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	expirationTime := time.Now().Add(authservice.ExpirationTime)
 	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt_token",
+		Name:     JWT_TOKEN_KEY,
 		Value:    token,
 		Expires:  expirationTime,
 		HttpOnly: true,
@@ -79,4 +83,16 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	responsePayload := map[string]string{"message": "Login successful"}
 	handler.SuccessResponse(w, http.StatusOK, responsePayload)
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     JWT_TOKEN_KEY,
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Path:     "/",
+	})
+
+	handler.SuccessResponse(w, http.StatusNoContent, nil)
 }
