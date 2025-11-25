@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { AppRoutes, protectedRoutePatterns } from '@/shared/config/routes';
+import { AppRoutes } from '@/shared/config/routes';
 import {JWT_TOKEN_KEY} from "@/shared/constants/cookie";
 
 export function middleware(req: NextRequest) {
@@ -8,8 +8,8 @@ export function middleware(req: NextRequest) {
 
   const publicPaths = [AppRoutes.login, AppRoutes.signup];
 
-  const isProtectedRoute = protectedRoutePatterns.some(pattern => pattern.test(pathname));
   const isPublicRoute = publicPaths.some(path => path === pathname);
+  const isProtectedRoute = !isPublicRoute;
 
   if (!token && isProtectedRoute) {
     return NextResponse.redirect(new URL(AppRoutes.login, req.url));

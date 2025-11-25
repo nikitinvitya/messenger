@@ -9,6 +9,7 @@ import {useState} from "react";
 import cls from './SignInForm.module.scss'
 import {AppLink} from "@/shared/ui/AppLink/ui/AppLink";
 import {AppRoutes} from "@/shared/config/routes";
+import {useUserStore} from "@/entities/user";
 
 const signInSchema = z.object({
   identifier: z.union([
@@ -23,6 +24,7 @@ type SignInFormData = z.infer<typeof signInSchema>;
 export function SignInForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const fetchUser = useUserStore((state) => state.fetchUser)
 
   const form = useForm<SignInFormData>({
     initialValues: {
@@ -57,6 +59,8 @@ export function SignInForm() {
     setIsLoading(true);
     try {
       await signIn(values);
+      await fetchUser();
+
       router.push(AppRoutes.chats);
     } catch (err: any) {
       console.error('Registration error:', err);

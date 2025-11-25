@@ -12,8 +12,3 @@ export const AppRoutes = {
   ...protectedRoutes,
   ...publicRoutes,
 } as const;
-
-export const protectedRoutePatterns = [
-  /^\/chats(\/.*)?$/,
-  /^\/profile(\/.*)?$/,
-];

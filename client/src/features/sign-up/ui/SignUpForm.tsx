@@ -63,7 +63,7 @@ export function SignUpForm() {
     try {
       const { confirmPassword, ...dataToSend } = values;
       await signUpByEmail(dataToSend);
-      router.push('/login');
+      router.push(AppRoutes.login);
     } catch (err: any) {
       console.error('Registration error:', err);
       if (err.response?.data?.error) {
@@ -117,7 +117,7 @@ export function SignUpForm() {
       <PasswordInput
         required
         label="Confirm password"
-        placeholder="password"
+        placeholder="Confirm password"
         key={form.key('confirmPassword')}
         {...form.getInputProps('confirmPassword')}
       />
