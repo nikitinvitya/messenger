@@ -1,8 +1,9 @@
 import '@mantine/core/styles.css';
 import type {Metadata} from 'next';
-import {ColorSchemeScript, MantineProvider} from '@mantine/core';
+import {ColorSchemeScript} from '@mantine/core';
 import React from "react";
 import '@/app/styles/index.scss'
+import {AppProvider} from "@/app/providers";
 
 export const metadata: Metadata = {
   title: 'Messenger',
@@ -20,7 +21,9 @@ export default function RootLayout({
       <ColorSchemeScript/>
     </head>
     <body>
-    <MantineProvider>{children}</MantineProvider>
+      <AppProvider>
+        {children}
+      </AppProvider>
     </body>
     </html>
   );

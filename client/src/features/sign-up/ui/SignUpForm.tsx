@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import {useState} from "react";
 import cls from './SignUpForm.module.scss'
 import {AppLink} from "@/shared/ui/AppLink/ui/AppLink";
+import {AppRoutes} from "@/shared/config/routes";
 
 const signUpSchema = z.object({
   email: z.email({ error: 'Invalid email format' }),
@@ -62,7 +63,7 @@ export function SignUpForm() {
     try {
       const { confirmPassword, ...dataToSend } = values;
       await signUpByEmail(dataToSend);
-      router.push('/login');
+      router.push(AppRoutes.login);
     } catch (err: any) {
       console.error('Registration error:', err);
       if (err.response?.data?.error) {
@@ -116,12 +117,12 @@ export function SignUpForm() {
       <PasswordInput
         required
         label="Confirm password"
-        placeholder="password"
+        placeholder="Confirm password"
         key={form.key('confirmPassword')}
         {...form.getInputProps('confirmPassword')}
       />
 
-      <AppLink href={'/sign-in'} >Already have an account? Login</AppLink>
+      <AppLink href={AppRoutes.login} >Already have an account? Login</AppLink>
 
       <Group className={cls.formFooter}>
         <Button type="submit" disabled={isLoading} loading={isLoading} className={cls.signUpBtn}>
