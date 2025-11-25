@@ -1,22 +1,20 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { AppRoutes } from '@/shared/config/routes';
-import {JWT_TOKEN_KEY} from "@/shared/constants/cookie";
+import { JWT_TOKEN_KEY } from '@/shared/constants/cookie';
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get(JWT_TOKEN_KEY);
   const { pathname } = req.nextUrl;
 
-  const publicPaths = [AppRoutes.login, AppRoutes.signup];
-
-  const isPublicRoute = publicPaths.some(path => path === pathname);
-  const isProtectedRoute = !isPublicRoute;
-
-  if (!token && isProtectedRoute) {
-    return NextResponse.redirect(new URL(AppRoutes.login, req.url));
+  if (token) {
+    return NextResponse.next();
   }
 
-  if (token && isPublicRoute) {
-    return NextResponse.redirect(new URL(AppRoutes.chats, req.url));
+  const publicPaths = [AppRoutes.login, AppRoutes.signup];
+  const isPublicRoute = publicPaths.some(path => path === pathname);
+
+  if (!isPublicRoute) {
+    return NextResponse.redirect(new URL(AppRoutes.login, req.url));
   }
 
   return NextResponse.next();
