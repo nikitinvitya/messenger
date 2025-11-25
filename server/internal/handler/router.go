@@ -72,6 +72,7 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", h.Auth.Register)
 			r.Post("/login", h.Auth.Login)
+			r.Post("/logout", h.Auth.Logout)
 		})
 
 		r.Group(func(r chi.Router) {
