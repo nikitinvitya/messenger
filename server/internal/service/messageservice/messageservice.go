@@ -292,12 +292,12 @@ func (s *messageService) ForwardMessage(ctx context.Context, forwarderID, destin
 			ReplyToMessageID:    nil,
 		}
 
-		_, err = s.messageRepo.CreateMessage(ctx, forwardMessage)
+		forwardedMessageID, err := s.messageRepo.CreateMessage(ctx, forwardMessage)
 		if err != nil {
 			return err
 		}
 
-		fullForwardedMessage, err := s.messageRepo.GetMessageByID(ctx, messageID)
+		fullForwardedMessage, err := s.messageRepo.GetMessageByID(ctx, forwardedMessageID)
 		if err != nil {
 			return err
 		}
