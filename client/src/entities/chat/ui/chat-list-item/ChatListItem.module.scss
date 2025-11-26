@@ -1,0 +1,36 @@
+.chatItem {
+  min-width: 100vw;
+  height: 72px;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 6fr 1fr;
+  gap: 10px;
+  padding: 5px 10px;
+  border-bottom: 1px solid #e1e1e1;
+
+  .chatName, .lastMessage {
+    font: var(--font-m);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chatName {
+    color: #000;
+  }
+
+  .lastMessage {
+    color: #969696;
+    grid-column: 1/-1;
+  }
+
+  .time {
+    color: #000;
+    font: var(--font-s);
+    justify-self: end;
+  }
+}
+
+
+
+
