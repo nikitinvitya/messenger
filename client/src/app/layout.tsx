@@ -4,6 +4,7 @@ import {ColorSchemeScript} from '@mantine/core';
 import React from "react";
 import '@/app/styles/index.scss'
 import {AppProvider} from "@/app/providers";
+import { roboto } from '@/app/styles/fonts/fonts';
 
 export const metadata: Metadata = {
   title: 'Messenger',
@@ -16,9 +17,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={roboto.variable}>
     <head>
       <ColorSchemeScript/>
+      <title>Messenger</title>
     </head>
     <body>
       <AppProvider>
