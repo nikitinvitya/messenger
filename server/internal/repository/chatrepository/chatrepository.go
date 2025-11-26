@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/model"
 )
 
 type ChatRepository interface {
 	CreateChat(ctx context.Context, name *string, chatType string, userIDs []int) (int, error)
-	ListUserChats(ctx context.Context, userID int) ([]model.Chat, error)
+	ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error)
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 	FindPrivateChatByParticipants(ctx context.Context, userID1 int, userID2 int) (int, error)
 	GetChatByID(ctx context.Context, chatID int) (*model.Chat, error)
@@ -61,12 +62,30 @@ func (r *chatRepository) CreateChat(ctx context.Context, name *string, chatType 
 	return chatID, nil
 }
 
-func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]model.Chat, error) {
-	sqlReq := `SELECT c.id, c.name, c.created_at, c.type
-			   FROM chats C
-			   JOIN chat_participants CP ON CP.chat_id = c.id
-			   WHERE cp.user_id = $1
-			   ORDER BY c.created_at DESC`
+func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error) {
+	sqlReq := `SELECT 
+			c.id, 
+			c.name, 
+			c.type, 
+			c.created_at,
+			last_msg.id as last_message_id,
+			last_msg.content as last_message_content,
+			last_msg.created_at as last_message_created_at
+		FROM 
+			chats c
+		JOIN 
+			chat_participants cp ON c.id = cp.chat_id
+		LEFT JOIN LATERAL (
+			SELECT id, content, created_at
+			FROM messages
+			WHERE chat_id = c.id
+			ORDER BY created_at DESC
+			LIMIT 1
+		) last_msg ON true
+		WHERE 
+			cp.user_id = $1
+		ORDER BY 
+			COALESCE(last_msg.created_at, c.created_at) DESC`
 
 	rows, err := r.db.QueryContext(ctx, sqlReq, userID)
 	if err != nil {
@@ -74,15 +93,34 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]model
 	}
 	defer rows.Close()
 
-	var chats []model.Chat
+	var chats []*dto.ChatResponse
 	for rows.Next() {
-		var chat model.Chat
+		var chat dto.ChatResponse
+		var lastMessage dto.LastMessage
+		var lastMessageID sql.NullInt64
+		var lastMessageContent sql.NullString
+		var lastMessageCreatedAt sql.NullTime
 
-		if err = rows.Scan(&chat.ID, &chat.Name, &chat.CreatedAt, &chat.Type); err != nil {
+		if err = rows.Scan(
+			&chat.ID,
+			&chat.Name,
+			&chat.Type,
+			&chat.CreatedAt,
+			&lastMessageID,
+			&lastMessageContent,
+			&lastMessageCreatedAt,
+		); err != nil {
 			return chats, err
 		}
 
-		chats = append(chats, chat)
+		if lastMessageID.Valid {
+			lastMessage.ID = int(lastMessageID.Int64)
+			lastMessage.Content = lastMessageContent.String
+			lastMessage.CreatedAt = lastMessageCreatedAt.Time
+			chat.LastMessage = &lastMessage
+		}
+
+		chats = append(chats, &chat)
 	}
 
 	if err = rows.Err(); err != nil {
