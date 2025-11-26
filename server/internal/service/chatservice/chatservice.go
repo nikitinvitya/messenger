@@ -16,7 +16,7 @@ var (
 
 type ChatService interface {
 	CreateChat(ctx context.Context, participantIDs []int, typeChat string, chatName *string, creatorID int) (int, error)
-	ListUserChats(ctx context.Context, userID int) ([]dto.ChatResponse, error)
+	ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error)
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 }
 
@@ -70,29 +70,22 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chat
 	return 0, ErrInvalidChatType
 }
 
-func (s *chatService) ListUserChats(ctx context.Context, userID int) ([]dto.ChatResponse, error) {
+func (s *chatService) ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error) {
 	chats, err := s.repo.ListUserChats(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	var result []dto.ChatResponse
 	for _, chat := range chats {
 		participants, err := s.repo.ListChatParticipants(ctx, chat.ID)
 		if err != nil {
-			return result, err
+			return chats, err
 		}
-		fullChatInfo := dto.ChatResponse{
-			ID:           chat.ID,
-			Name:         chat.Name,
-			Type:         chat.Type,
-			CreatedAt:    chat.CreatedAt,
-			Participants: participants,
-		}
-		result = append(result, fullChatInfo)
+
+		chat.Participants = participants
 	}
 
-	return result, nil
+	return chats, nil
 }
 
 func (s *chatService) IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error) {
