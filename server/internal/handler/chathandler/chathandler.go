@@ -2,12 +2,14 @@ package chathandler
 
 import (
 	"errors"
+	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/handler/helper"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	handler "github.com/nikitinvitya/messenger/internal/handler/response"
 	"github.com/nikitinvitya/messenger/internal/service/chatservice"
+	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"net/http"
 	"strconv"
 )
@@ -87,4 +89,37 @@ func (h *ChatHandler) ListUserChats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handler.SuccessResponse(w, http.StatusOK, map[string][]*dto.ChatResponse{"chats": chats})
+}
+
+func (h *ChatHandler) GetChatByID(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Invalid user ID in token", err)
+		return
+	}
+
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := strconv.Atoi(chatIDStr)
+	if err != nil {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, "Invalid chat id")
+		return
+	}
+
+	chatInfo, err := h.chatService.GetChatByID(r.Context(), userID, chatID)
+	if err != nil {
+		if errors.Is(err, messageservice.ErrAccessDenied) {
+			handler.ClientErrorResponse(w, http.StatusForbidden, "Access to this chat is denied")
+			return
+		}
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to get chat info", err)
+		return
+	}
+
+	handler.SuccessResponse(w, http.StatusOK, chatInfo)
 }

@@ -84,6 +84,7 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 			r.Route("/chats", func(r chi.Router) {
 				r.Post("/", h.Chat.CreateChat)
 				r.Get("/", h.Chat.ListUserChats)
+				r.Get("/{chatID}", h.Chat.GetChatByID)
 				r.Get("/{chatID}/messages", h.Message.ListMessagesInChat)
 				r.Post("/{chatID}/messages", h.Message.CreateMessage)
 			})

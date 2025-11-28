@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
+	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 )
 
 var (
@@ -18,6 +19,7 @@ type ChatService interface {
 	CreateChat(ctx context.Context, participantIDs []int, typeChat string, chatName *string, creatorID int) (int, error)
 	ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error)
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
+	GetChatByID(ctx context.Context, userID int, chatID int) (*dto.ChatResponse, error)
 }
 
 type chatService struct {
@@ -90,4 +92,33 @@ func (s *chatService) ListUserChats(ctx context.Context, userID int) ([]*dto.Cha
 
 func (s *chatService) IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error) {
 	return s.repo.IsUserInChat(ctx, userID, chatID)
+}
+
+func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (*dto.ChatResponse, error) {
+	isExist, err := s.repo.IsUserInChat(ctx, userID, chatID)
+	if err != nil {
+		return nil, err
+	}
+	if !isExist {
+		return nil, messageservice.ErrAccessDenied
+	}
+
+	var result dto.ChatResponse
+	chat, err := s.repo.GetChatByID(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	participants, err := s.repo.ListChatParticipants(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	result.ID = chat.ID
+	result.Name = chat.Name
+	result.Type = chat.Type
+	result.CreatedAt = chat.CreatedAt
+	result.Participants = participants
+
+	return &result, nil
 }
