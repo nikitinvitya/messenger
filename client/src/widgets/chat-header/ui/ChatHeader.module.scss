@@ -1,0 +1,20 @@
+.chatHeader {
+  min-width: 100vw;
+  min-height: var(--navbar-height);
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 5px;
+  background-color: #6491b2;
+
+  .toChatsBtn {
+    border-radius: 50%;
+    background-color: inherit;
+  }
+
+  .chatName {
+    font: var(--font-m);
+    color: #fff;
+  }
+}
