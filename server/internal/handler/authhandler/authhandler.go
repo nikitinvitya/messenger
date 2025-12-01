@@ -2,10 +2,13 @@ package authhandler
 
 import (
 	"errors"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/nikitinvitya/messenger/internal/handler/helper"
+	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	"github.com/nikitinvitya/messenger/internal/handler/response"
 	"github.com/nikitinvitya/messenger/internal/service/authservice"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -60,7 +63,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.service.Login(r.Context(), requestBody.Identifier, requestBody.Password)
+	token, expirationTime, err := h.service.Login(r.Context(), requestBody.Identifier, requestBody.Password)
 	if err != nil {
 		if errors.Is(err, authservice.InvalidCredentials) {
 			handler.ClientErrorResponse(w, http.StatusUnauthorized, "Invalid credentials")
@@ -70,7 +73,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expirationTime := time.Now().Add(authservice.ExpirationTime)
 	http.SetCookie(w, &http.Cookie{
 		Name:     JWT_TOKEN_KEY,
 		Value:    token,
@@ -95,4 +97,26 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	})
 
 	handler.SuccessResponse(w, http.StatusNoContent, nil)
+}
+
+func (h *AuthHandler) GetWSTicket(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Invalid user ID in token", err)
+		return
+	}
+
+	ticket, err := h.service.GenerateWSTicket(r.Context(), userID)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to generate ticket", err)
+		return
+	}
+
+	handler.SuccessResponse(w, http.StatusOK, map[string]string{"ticket": ticket})
 }
