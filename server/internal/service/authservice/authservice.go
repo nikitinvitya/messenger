@@ -12,9 +12,15 @@ import (
 	"time"
 )
 
+const (
+	WS_KEY   = "ws_ticket"
+	HTTP_KEY = "http_session"
+)
+
 type AuthService interface {
 	Register(ctx context.Context, email, username, password string) error
-	Login(ctx context.Context, identifier, password string) (string, error)
+	Login(ctx context.Context, identifier, password string) (string, time.Time, error)
+	GenerateWSTicket(ctx context.Context, userID int) (string, error)
 }
 
 var (
@@ -72,7 +78,7 @@ func (s *authService) Register(ctx context.Context, email, username, password st
 	return nil
 }
 
-func (s *authService) Login(ctx context.Context, identifier, password string) (string, error) {
+func (s *authService) Login(ctx context.Context, identifier, password string) (string, time.Time, error) {
 	var user *model.User
 	var err error
 
@@ -83,28 +89,41 @@ func (s *authService) Login(ctx context.Context, identifier, password string) (s
 	}
 
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 
 	if user == nil {
-		return "", InvalidCredentials
+		return "", time.Time{}, InvalidCredentials
 	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", InvalidCredentials
+		return "", time.Time{}, InvalidCredentials
 	}
 
 	expirationTime := time.Now().Add(ExpirationTime)
 	claims := &jwt.RegisteredClaims{
 		Subject:   strconv.Itoa(user.ID),
 		ExpiresAt: jwt.NewNumericDate(expirationTime),
+		Audience:  jwt.ClaimStrings{HTTP_KEY},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 
-	return tokenString, nil
+	return tokenString, expirationTime, nil
+}
+
+func (s *authService) GenerateWSTicket(_ context.Context, userID int) (string, error) {
+	expirationTime := time.Now().Add(30 * time.Second)
+	claims := &jwt.RegisteredClaims{
+		Subject:   strconv.Itoa(userID),
+		ExpiresAt: jwt.NewNumericDate(expirationTime),
+		Audience:  jwt.ClaimStrings{WS_KEY},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(s.jwtSecret))
 }

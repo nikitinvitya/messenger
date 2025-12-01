@@ -77,6 +77,8 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(h.jwtSecret))
+			r.Get("/auth/ws-ticket", h.Auth.GetWSTicket)
+
 			r.Route("/users", func(r chi.Router) {
 				r.Get("/me", h.User.GetMyProfile)
 			})
