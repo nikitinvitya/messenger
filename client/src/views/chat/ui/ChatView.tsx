@@ -34,6 +34,7 @@ export async function ChatView({ chatID }: ChatViewProps) {
         blockStatus={messagesData.blockStatus}
         chatID={chatID}
         chatName={chatName}
+        chatType={chat.type}
       />
     </Box>
   );

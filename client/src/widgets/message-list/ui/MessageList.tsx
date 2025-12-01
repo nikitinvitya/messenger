@@ -2,13 +2,15 @@ import classNames from 'classnames';
 import cls from './MessageList.module.scss';
 import { Message, MessageItem } from "@/entities/message";
 import { Box } from "@mantine/core";
+import {Chat} from "@/entities/chat";
 
 interface MessageListProps {
   className?: string;
   messages: Message[];
+  chatType: Chat["type"];
 }
 
-export const MessageList = ({ messages }: MessageListProps) => {
+export const MessageList = ({ messages, chatType }: MessageListProps) => {
   const sorted = [...messages].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
@@ -53,6 +55,7 @@ export const MessageList = ({ messages }: MessageListProps) => {
             messageInfo={message}
             isFirstOfGroup={flags.isFirst}
             isLastOfGroup={flags.isLast}
+            chatType={chatType}
           />
         );
       })}

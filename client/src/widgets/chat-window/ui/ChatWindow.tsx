@@ -6,6 +6,7 @@ import {ChatHeader} from "@/widgets/chat-header";
 import {MessageList} from "@/widgets/message-list";
 import {SendMessageForm} from "@/features/send-message";
 import wallpaper from "@/shared/assets/ChatWallpaper.jpg"
+import {Chat} from "@/entities/chat";
 
 interface ChatWindowProps {
   className?: string;
@@ -13,11 +14,12 @@ interface ChatWindowProps {
   blockStatus: MessageApiResponse["blockStatus"];
   chatID: string;
   chatName: string;
+  chatType: Chat["type"];
 }
 
 export const ChatWindow = (props: ChatWindowProps) => {
 
-  const {chatID, chatName, className, initialMessages, blockStatus} = props;
+  const {chatID, chatName, className, initialMessages, blockStatus, chatType} = props;
 
   const renderFooter = () => {
     switch (blockStatus) {
@@ -33,7 +35,9 @@ export const ChatWindow = (props: ChatWindowProps) => {
   return (
     <Box className={classNames(cls.chatWindow)} style={{backgroundImage: `url(${wallpaper.src})`}}>
       <ChatHeader chatName={chatName} />
-      <MessageList messages={initialMessages} />
+      <MessageList
+        chatType={chatType}
+        messages={initialMessages} />
 
       <Box className={cls.blurFooter} />
       {renderFooter()}
