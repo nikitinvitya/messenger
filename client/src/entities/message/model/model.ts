@@ -1,0 +1,21 @@
+export interface Sender {
+  id: number;
+  username: string;
+}
+
+export interface Message {
+  id: number;
+  chatId: number;
+  createdAt: string;
+  content: string;
+  sender: Sender;
+  editedAt?: string;
+  replyToMessageId?: number;
+  forwardedFromUserId?: number;
+  forwardedFromChatId?: number;
+}
+
+export interface MessageApiResponse {
+  messages: Message[],
+  blockStatus: "none" | "sender_blocked" | "recipient_blocked"
+}

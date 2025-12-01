@@ -1,0 +1,10 @@
+.messageList {
+  padding: 10px 5px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow-y: scroll;
+  gap: 10px;
+  padding-bottom: var(--sendform-height);
+  background: transparent;
+}

@@ -1,0 +1,58 @@
+.formWrapper {
+  width: calc(100vw - 10px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 2rem;
+  position: fixed;
+  bottom: 0;
+  z-index: 10;
+  margin-left: 5px;
+  margin-bottom: 10px;
+  margin-top: auto;
+
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+
+  .sendForm {
+    flex-grow: 1;
+
+    textarea {
+      width: 100%;
+      border-radius: 12px;
+      padding: 10px 14px;
+      border: none;
+
+      font-size: 1rem;
+      color: #000;
+      background-color: inherit;
+
+      &:focus {
+        outline: none;
+        border: none;
+        box-shadow: none;
+      }
+
+      &::placeholder {
+        color: #5b5b5b;
+      }
+    }
+  }
+}
+
+
+.sendBtn {
+  width: 45px;
+  height: 45px;
+  min-width: 40px;
+  min-height: 40px;
+
+  margin-top: auto;
+  padding: 0;
+  border-radius: 50%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
