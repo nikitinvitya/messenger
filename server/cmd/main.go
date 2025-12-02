@@ -76,7 +76,7 @@ func main() {
 	userService := userservice.NewUserService(userRepo)
 	chatService := chatservice.NewChatService(chatRepo)
 	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo)
-	messageService := messageservice.NewMessageService(chatRepo, messageRepo, hub, blocklistService)
+	messageService := messageservice.NewMessageService(chatRepo, messageRepo, userRepo, hub, blocklistService)
 
 	authHandler := authhandler.NewAuthHandler(authService)
 	userHandler := userhandler.NewUserHandler(userService)

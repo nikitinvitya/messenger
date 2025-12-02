@@ -19,6 +19,10 @@ type MessageResponse struct {
 	Sender              *SenderInfo `json:"sender"`
 }
 
+func (m *MessageResponse) GetChatID() int {
+	return m.ChatID
+}
+
 type ListMessagesResponse struct {
 	Messages    []*MessageResponse `json:"messages"`
 	BlockStatus string             `json:"block_status"`

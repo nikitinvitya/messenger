@@ -7,9 +7,11 @@ import (
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
 	"github.com/nikitinvitya/messenger/internal/repository/messagerepository"
+	"github.com/nikitinvitya/messenger/internal/repository/userrepository"
 	"github.com/nikitinvitya/messenger/internal/service/blocklistservice"
 	"github.com/nikitinvitya/messenger/internal/websocket"
 	"github.com/nikitinvitya/messenger/pkg/utils"
+	"log/slog"
 )
 
 var (
@@ -31,14 +33,16 @@ type MessageService interface {
 type messageService struct {
 	chatRepo     chatrepository.ChatRepository
 	messageRepo  messagerepository.MessageRepository
+	userRepo     userrepository.UserRepository
 	hub          *websocket.Hub
 	blockService blocklistservice.BlocklistService
 }
 
-func NewMessageService(chatRepo chatrepository.ChatRepository, messageRepo messagerepository.MessageRepository, hub *websocket.Hub, blockService blocklistservice.BlocklistService) MessageService {
+func NewMessageService(chatRepo chatrepository.ChatRepository, messageRepo messagerepository.MessageRepository, userRepo userrepository.UserRepository, hub *websocket.Hub, blockService blocklistservice.BlocklistService) MessageService {
 	return &messageService{
 		chatRepo:     chatRepo,
 		messageRepo:  messageRepo,
+		userRepo:     userRepo,
 		hub:          hub,
 		blockService: blockService,
 	}
@@ -126,9 +130,31 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 		return nil, err
 	}
 
+	sender, err := s.userRepo.GetUserByID(ctx, finalMessage.SenderID)
+	if err != nil {
+		slog.Error("failed to get sender info for websocket broadcast", "error", err, "message_id", finalMessage.ID)
+	}
+
+	messagePayload := &dto.MessageResponse{
+		ID:                  finalMessage.ID,
+		ChatID:              finalMessage.ChatID,
+		Content:             finalMessage.Content,
+		CreatedAt:           finalMessage.CreatedAt,
+		EditedAt:            finalMessage.EditedAt,
+		ReplyToMessageID:    finalMessage.ReplyToMessageID,
+		ForwardedFromUserID: finalMessage.ForwardedFromUserID,
+		ForwardedFromChatID: finalMessage.ForwardedFromChatID,
+	}
+	if sender != nil {
+		messagePayload.Sender = &dto.SenderInfo{
+			ID:       sender.ID,
+			Username: sender.Username,
+		}
+	}
+
 	s.hub.Broadcast <- websocket.Event{
 		Type:    "create_message",
-		Payload: finalMessage,
+		Payload: messagePayload,
 	}
 
 	return finalMessage, nil
@@ -218,17 +244,39 @@ func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID in
 		return nil, err
 	}
 
-	message, err = s.messageRepo.GetMessageByID(ctx, messageID)
+	updatedMessage, err := s.messageRepo.GetMessageByID(ctx, messageID)
 	if err != nil {
 		return nil, err
 	}
 
-	s.hub.Broadcast <- websocket.Event{
-		Type:    "update_message",
-		Payload: message,
+	sender, err := s.userRepo.GetUserByID(ctx, updatedMessage.SenderID)
+	if err != nil {
+		slog.Error("failed to get sender info for websocket broadcast", "error", err, "message_id", updatedMessage.ID)
 	}
 
-	return message, nil
+	messagePayload := &dto.MessageResponse{
+		ID:                  updatedMessage.ID,
+		ChatID:              updatedMessage.ChatID,
+		Content:             updatedMessage.Content,
+		CreatedAt:           updatedMessage.CreatedAt,
+		EditedAt:            updatedMessage.EditedAt,
+		ReplyToMessageID:    updatedMessage.ReplyToMessageID,
+		ForwardedFromUserID: updatedMessage.ForwardedFromUserID,
+		ForwardedFromChatID: updatedMessage.ForwardedFromChatID,
+	}
+	if sender != nil {
+		messagePayload.Sender = &dto.SenderInfo{
+			ID:       sender.ID,
+			Username: sender.Username,
+		}
+	}
+
+	s.hub.Broadcast <- websocket.Event{
+		Type:    "update_message",
+		Payload: messagePayload,
+	}
+
+	return updatedMessage, nil
 }
 
 func (s *messageService) DeleteMessage(ctx context.Context, userID, messageID int) (*model.Message, error) {
