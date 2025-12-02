@@ -29,13 +29,16 @@ func contains(slice []string, value string) bool {
 func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			var tokenString string
+			isWsRequest := strings.HasPrefix(r.URL.Path, "/api/v1/ws/")
 
-			cookie, err := r.Cookie(JwtTokenKey)
-			if err == nil {
-				tokenString = cookie.Value
-			} else {
+			var tokenString string
+			if isWsRequest {
 				tokenString = r.URL.Query().Get("token")
+			} else {
+				cookie, err := r.Cookie(JwtTokenKey)
+				if err == nil {
+					tokenString = cookie.Value
+				}
 			}
 
 			if tokenString == "" {
@@ -55,8 +58,6 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 				handler.ClientErrorResponse(w, http.StatusUnauthorized, "Invalid or expired token")
 				return
 			}
-
-			isWsRequest := strings.HasPrefix(r.URL.Path, "/api/v1/ws/")
 
 			if isWsRequest {
 				if !contains(claims.Audience, authservice.WS_KEY) {
