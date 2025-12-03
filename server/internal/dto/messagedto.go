@@ -9,13 +9,13 @@ type SenderInfo struct {
 
 type MessageResponse struct {
 	ID                  int         `json:"id"`
-	ChatID              int         `json:"chat_id"`
+	ChatID              int         `json:"chatId"`
 	Content             string      `json:"content"`
-	CreatedAt           time.Time   `json:"created_at"`
-	EditedAt            *time.Time  `json:"edited_at,omitempty"`
-	ReplyToMessageID    *int        `json:"reply_to_message_id,omitempty"`
-	ForwardedFromUserID *int        `json:"forwarded_from_user_id,omitempty"`
-	ForwardedFromChatID *int        `json:"forwarded_from_chat_id,omitempty"`
+	CreatedAt           time.Time   `json:"createdAt"`
+	EditedAt            *time.Time  `json:"editedAt,omitempty"`
+	ReplyToMessageID    *int        `json:"replyToMessageId,omitempty"`
+	ForwardedFromUserID *int        `json:"forwardedFromUserId,omitempty"`
+	ForwardedFromChatID *int        `json:"forwardedFromChatId,omitempty"`
 	Sender              *SenderInfo `json:"sender"`
 }
 
@@ -25,5 +25,5 @@ func (m *MessageResponse) GetChatID() int {
 
 type ListMessagesResponse struct {
 	Messages    []*MessageResponse `json:"messages"`
-	BlockStatus string             `json:"block_status"`
+	BlockStatus string             `json:"blockStatus"`
 }
