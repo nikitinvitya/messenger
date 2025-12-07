@@ -10,6 +10,7 @@ interface ChatsViewProps {
 
 export const ChatsView = async (props: ChatsViewProps) => {
   const chats = await getChats()
+  console.log(chats)
   return (
     <Box className={classNames(cls.chatsView)}>
       <ChatList chatList={chats} />
