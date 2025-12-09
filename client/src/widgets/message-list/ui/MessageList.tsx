@@ -1,64 +1,57 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
 import classNames from 'classnames';
+import { Box } from '@mantine/core';
+import { type Chat } from '@/entities/chat';
+import { MessageItem, useMessageStore, type Message } from '@/entities/message';
 import cls from './MessageList.module.scss';
-import { Message, MessageItem } from "@/entities/message";
-import { Box } from "@mantine/core";
-import {Chat} from "@/entities/chat";
 
 interface MessageListProps {
   className?: string;
-  messages: Message[];
-  chatType: Chat["type"];
+  initialMessages: Message[];
+  chatType: Chat['type'];
 }
 
-export const MessageList = ({ messages, chatType }: MessageListProps) => {
-  const sorted = [...messages].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
+export const MessageList = ({ initialMessages, chatType }: MessageListProps) => {
+  const messages = useMessageStore((state) => state.messages);
+  const setInitialMessages = useMessageStore((state) => state.setInitialMessages);
 
-  const flagsById = new Map();
-  const GAP = 5 * 60 * 1000;
+  const viewport = useRef<HTMLDivElement>(null);
 
-  for (let i = 0; i < sorted.length; i++) {
-    const msg = sorted[i];
-    const prev = sorted[i - 1];
-    const next = sorted[i + 1];
+  useEffect(() => {
+    setInitialMessages(initialMessages);
+  }, [initialMessages, setInitialMessages]);
 
-    const timeGapPrev = prev
-      ? new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime()
-      : Infinity;
+  useEffect(() => {
+    viewport.current?.scrollTo({ top: viewport.current.scrollHeight, behavior: 'smooth' });
+  }, [messages]);
 
-    const timeGapNext = next
-      ? new Date(next.createdAt).getTime() - new Date(msg.createdAt).getTime()
-      : Infinity;
+  const messagesWithMeta = messages.map((msg, index) => {
+    const prev = messages[index - 1];
+    const next = messages[index + 1];
+    const GAP = 5 * 60 * 1000;
 
-    const isFirst =
-      !prev ||
-      prev.sender.id !== msg.sender.id ||
-      timeGapPrev > GAP;
+    const timeGapPrev = prev ? new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime() : Infinity;
+    const timeGapNext = next ? new Date(next.createdAt).getTime() - new Date(msg.createdAt).getTime() : Infinity;
 
-    const isLast =
-      !next ||
-      next.sender.id !== msg.sender.id ||
-      timeGapNext > GAP;
+    const isFirstOfGroup = !prev || prev.sender?.id !== msg.sender?.id || timeGapPrev > GAP;
+    const isLastOfGroup = !next || next.sender?.id !== msg.sender?.id || timeGapNext > GAP;
 
-    flagsById.set(msg.id, { isFirst, isLast });
-  }
+    return { ...msg, isFirstOfGroup, isLastOfGroup };
+  });
 
   return (
-    <Box className={cls.messageList}>
-      {messages.map((message) => {
-        const flags = flagsById.get(message.id) || { isFirst: true, isLast: true };
-
-        return (
-          <MessageItem
-            key={message.id}
-            messageInfo={message}
-            isFirstOfGroup={flags.isFirst}
-            isLastOfGroup={flags.isLast}
-            chatType={chatType}
-          />
-        );
-      })}
+    <Box ref={viewport} className={classNames(cls.messageList)}>
+      {messagesWithMeta.map((message) => (
+        <MessageItem
+          key={message.id}
+          messageInfo={message}
+          isFirstOfGroup={message.isFirstOfGroup}
+          isLastOfGroup={message.isLastOfGroup}
+          chatType={chatType}
+        />
+      ))}
     </Box>
   );
 };

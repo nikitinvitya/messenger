@@ -1,7 +1,6 @@
 import { api } from '@/shared/api';
 import { cookies } from 'next/headers';
 import { JWT_TOKEN_KEY } from '@/shared/constants/cookie';
-import { mapListMessagesResponse } from './mapper';
 import {MessageApiResponse} from "@/entities/message";
 
 export const getMessages = async (chatID: string, page: number = 1): Promise<MessageApiResponse> => {
@@ -19,5 +18,5 @@ export const getMessages = async (chatID: string, page: number = 1): Promise<Mes
     },
   });
 
-  return mapListMessagesResponse(response.data);
+  return response.data;
 };

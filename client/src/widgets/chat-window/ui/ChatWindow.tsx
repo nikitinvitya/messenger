@@ -1,12 +1,17 @@
+'use client';
+
+import { useEffect } from 'react';
 import classNames from 'classnames';
-import cls from './ChatWindow.module.scss'
-import {Box, Button, Text} from "@mantine/core";
-import {Message, MessageApiResponse} from "@/entities/message";
-import {ChatHeader} from "@/widgets/chat-header";
-import {MessageList} from "@/widgets/message-list";
-import {SendMessageForm} from "@/features/send-message";
-import wallpaper from "@/shared/assets/ChatWallpaper.jpg"
-import {Chat} from "@/entities/chat";
+import { Box, Button, Text } from '@mantine/core';
+import {type Message, MessageApiResponse, useMessageStore} from '@/entities/message'; // <-- Импортируем стор
+import { ChatHeader } from '@/widgets/chat-header';
+import { MessageList } from '@/widgets/message-list';
+import { SendMessageForm } from '@/features/send-message';
+import wallpaper from '@/shared/assets/ChatWallpaper.jpg';
+import { type Chat } from '@/entities/chat';
+import { websocketService } from '@/shared/api/websocket';
+import cls from './ChatWindow.module.scss';
+
 
 interface ChatWindowProps {
   className?: string;
@@ -18,8 +23,18 @@ interface ChatWindowProps {
 }
 
 export const ChatWindow = (props: ChatWindowProps) => {
+  const { chatID, chatName, className, initialMessages, blockStatus, chatType } = props;
 
-  const {chatID, chatName, className, initialMessages, blockStatus, chatType} = props;
+  const clearMessages = useMessageStore((state) => state.clearMessages);
+
+  useEffect(() => {
+    websocketService.connect(chatID);
+
+    return () => {
+      websocketService.disconnect();
+      clearMessages();
+    };
+  }, [chatID, clearMessages]);
 
   const renderFooter = () => {
     switch (blockStatus) {
@@ -37,7 +52,7 @@ export const ChatWindow = (props: ChatWindowProps) => {
       <ChatHeader chatName={chatName} />
       <MessageList
         chatType={chatType}
-        messages={initialMessages} />
+        initialMessages={initialMessages} />
 
       <Box className={cls.blurFooter} />
       {renderFooter()}

@@ -11,6 +11,8 @@ interface ChatListProps {
 }
 
 export const ChatList = ({chatList}: ChatListProps) => {
+  console.log(chatList)
+
   return (
     <Group className={classNames(cls.chatList)}>
       {chatList

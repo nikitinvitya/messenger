@@ -14,7 +14,7 @@
     "@mantine/hooks": "^8.3.8",
     "axios": "^1.13.2",
     "classnames": "^2.5.1",
-    "next": "16.0.3",
+    "next": "^16.0.7",
     "next-intl": "^4.5.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
