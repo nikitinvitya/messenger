@@ -12,6 +12,7 @@ type UserRepository interface {
 	GetUserByName(ctx context.Context, username string) (*model.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
 	GetUserByID(ctx context.Context, id int) (*model.User, error)
+	FindUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error)
 }
 
 type userRepository struct {
@@ -82,4 +83,33 @@ func (r *userRepository) GetUserByID(ctx context.Context, id int) (*model.User, 
 	}
 
 	return &user, nil
+}
+
+func (r *userRepository) FindUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error) {
+	sqlReq := `SELECT id, username from users WHERE id != $1 AND username ilike $2 LIMIT 10`
+	searchUsername := "%" + username + "%"
+
+	users, err := r.db.QueryContext(ctx, sqlReq, userID, searchUsername)
+	if err != nil {
+		return nil, err
+	}
+	defer users.Close()
+
+	var result []model.User
+	for users.Next() {
+		var user model.User
+
+		if err = users.Scan(&user.ID, &user.Username); err != nil {
+			return result, err
+		}
+
+		result = append(result, user)
+	}
+
+	if err = users.Err(); err != nil {
+		return result, err
+	}
+
+	return result, nil
+
 }

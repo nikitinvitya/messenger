@@ -8,6 +8,7 @@ import (
 
 type UserService interface {
 	GetProfile(ctx context.Context, id int) (*model.User, error)
+	SearchUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error)
 }
 
 type userService struct {
@@ -22,4 +23,8 @@ func NewUserService(repo userrepository.UserRepository) UserService {
 
 func (s *userService) GetProfile(ctx context.Context, id int) (*model.User, error) {
 	return s.repo.GetUserByID(ctx, id)
+}
+
+func (s *userService) SearchUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error) {
+	return s.repo.FindUsersByUsername(ctx, userID, username)
 }
