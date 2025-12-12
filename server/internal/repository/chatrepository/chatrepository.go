@@ -93,7 +93,7 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 	}
 	defer rows.Close()
 
-	var chats []*dto.ChatResponse
+	chats := make([]*dto.ChatResponse, 0)
 	for rows.Next() {
 		var chat dto.ChatResponse
 		var lastMessage dto.LastMessage
@@ -185,7 +185,7 @@ func (r *chatRepository) ListChatParticipantsID(ctx context.Context, chatID int)
 	}
 	defer rows.Close()
 
-	var userIDs []int
+	userIDs := make([]int, 0)
 	for rows.Next() {
 		var userID int
 		if err = rows.Scan(&userID); err != nil {
@@ -213,7 +213,7 @@ func (r *chatRepository) ListChatParticipants(ctx context.Context, chatID int) (
 	}
 	defer rows.Close()
 
-	var result []model.User
+	result := make([]model.User, 0)
 	for rows.Next() {
 		var user model.User
 		if err = rows.Scan(&user.ID, &user.Email, &user.Username, &user.CreatedAt); err != nil {

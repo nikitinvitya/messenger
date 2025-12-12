@@ -76,7 +76,7 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 	}
 	defer rows.Close()
 
-	var messagesResponse []*dto.MessageResponse
+	messagesResponse := make([]*dto.MessageResponse, 0)
 	for rows.Next() {
 
 		var message dto.MessageResponse

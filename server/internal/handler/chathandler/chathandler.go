@@ -38,9 +38,9 @@ func (h *ChatHandler) CreateChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var requestBody struct {
-		UserIDs  []int   `json:"user_ids" validate:"required,min=1,dive,gt=0"`
+		UserIDs  []int   `json:"userIDs" validate:"required,min=1,dive,gt=0"`
 		Name     *string `json:"name,omitempty"`
-		ChatType string  `json:"chat_type"`
+		ChatType string  `json:"chatType"`
 	}
 
 	if !helper.ValidateRequest(w, r, &requestBody) {
@@ -66,7 +66,7 @@ func (h *ChatHandler) CreateChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler.SuccessResponse(w, http.StatusCreated, map[string]int{"chat_id": chatID})
+	handler.SuccessResponse(w, http.StatusCreated, map[string]int{"chatID": chatID})
 }
 
 func (h *ChatHandler) ListUserChats(w http.ResponseWriter, r *http.Request) {

@@ -44,7 +44,7 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 
 	var requestBody struct {
 		Content          string `json:"content" validate:"required,min=1"`
-		ReplyToMessageID *int   `json:"reply_to_message_id,omitempty"`
+		ReplyToMessageID *int   `json:"replyToMessageID,omitempty"`
 	}
 
 	if !helper.ValidateRequest(w, r, &requestBody) {
@@ -227,7 +227,7 @@ func (h *MessageHandler) ForwardMessage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var requestBody struct {
-		MessageIDs []int `json:"message_ids" validate:"required,min=1,dive,gt=0"`
+		MessageIDs []int `json:"messageIDs" validate:"required,min=1,dive,gt=0"`
 	}
 
 	if !helper.ValidateRequest(w, r, &requestBody) {
