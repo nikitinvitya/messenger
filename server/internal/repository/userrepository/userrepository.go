@@ -95,7 +95,7 @@ func (r *userRepository) FindUsersByUsername(ctx context.Context, userID int, us
 	}
 	defer users.Close()
 
-	var result []model.User
+	result := make([]model.User, 0)
 	for users.Next() {
 		var user model.User
 
