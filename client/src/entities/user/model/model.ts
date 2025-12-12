@@ -5,3 +5,8 @@ export interface User {
   password?: string,
   createdAt: string,
 }
+
+export interface UserSearchResponse {
+  id: number,
+  username: string,
+}
