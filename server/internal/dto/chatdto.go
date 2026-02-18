@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"github.com/nikitinvitya/messenger/internal/model"
 	"time"
+
+	"github.com/nikitinvitya/messenger/internal/model"
 )
 
 type LastMessage struct {
@@ -18,4 +19,13 @@ type ChatResponse struct {
 	CreatedAt    time.Time    `json:"createdAt"`
 	Participants []model.User `json:"participants"`
 	LastMessage  *LastMessage `json:"lastMessage,omitempty"`
+}
+
+type UserLeftPayload struct {
+	ChatID int `json:"chatId"`
+	UserID int `json:"userId"`
+}
+
+func (p *UserLeftPayload) GetChatID() int {
+	return p.ChatID
 }
