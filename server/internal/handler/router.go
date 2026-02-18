@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"net/http"
+	"os"
+
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -11,8 +14,6 @@ import (
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
 	"github.com/nikitinvitya/messenger/internal/handler/websockethandler"
-	"net/http"
-	"os"
 )
 
 type APIHandlersDeps struct {
@@ -90,6 +91,7 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 				r.Get("/{chatID}", h.Chat.GetChatByID)
 				r.Get("/{chatID}/messages", h.Message.ListMessagesInChat)
 				r.Post("/{chatID}/messages", h.Message.CreateMessage)
+				r.Delete("/leave/{chatID}", h.Chat.LeaveChat)
 			})
 
 			r.Route("/messages", func(r chi.Router) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/model"
 )
@@ -17,6 +18,9 @@ type ChatRepository interface {
 	GetChatByID(ctx context.Context, chatID int) (*model.Chat, error)
 	ListChatParticipantsID(ctx context.Context, chatID int) ([]int, error)
 	ListChatParticipants(ctx context.Context, chatID int) ([]model.User, error)
+	LeaveChat(ctx context.Context, chatID int, userID int) error
+	CountChatParticipants(ctx context.Context, chatID int) (int, error)
+	DeleteChat(ctx context.Context, chatID int) error
 }
 
 type chatRepository struct {
@@ -228,4 +232,40 @@ func (r *chatRepository) ListChatParticipants(ctx context.Context, chatID int) (
 	}
 
 	return result, nil
+}
+
+func (r *chatRepository) LeaveChat(ctx context.Context, chatID int, userID int) error {
+	sqlReq := `DELETE from chat_participants where user_id = $1 and chat_id = $2`
+
+	result, err := r.db.ExecContext(ctx, sqlReq, userID, chatID)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (r *chatRepository) CountChatParticipants(ctx context.Context, chatID int) (int, error) {
+	sqlReq := `select count(*) from chat_participants where chat_id = $1`
+	var count int
+	err := r.db.QueryRowContext(ctx, sqlReq, chatID).Scan(&count)
+	return count, err
+}
+
+func (r *chatRepository) DeleteChat(ctx context.Context, chatID int) error {
+	sqlReq := `delete from chats where id = $1`
+	_, err := r.db.ExecContext(ctx, sqlReq, chatID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

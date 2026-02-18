@@ -2,6 +2,9 @@ package chathandler
 
 import (
 	"errors"
+	"net/http"
+	"strconv"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nikitinvitya/messenger/internal/dto"
@@ -10,8 +13,6 @@ import (
 	handler "github.com/nikitinvitya/messenger/internal/handler/response"
 	"github.com/nikitinvitya/messenger/internal/service/chatservice"
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
-	"net/http"
-	"strconv"
 )
 
 type ChatHandler struct {
@@ -122,4 +123,33 @@ func (h *ChatHandler) GetChatByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handler.SuccessResponse(w, http.StatusOK, chatInfo)
+}
+
+func (h *ChatHandler) LeaveChat(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Invalid user ID in token", err)
+		return
+	}
+
+	chatIDStr := chi.URLParam(r, "chatID")
+	chatID, err := strconv.Atoi(chatIDStr)
+
+	err = h.chatService.LeaveChat(r.Context(), userID, chatID)
+	if err != nil {
+		if errors.Is(err, messageservice.ErrAccessDenied) {
+			handler.ClientErrorResponse(w, http.StatusForbidden, "You are not a member of this chat")
+			return
+		}
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to leave chat", err)
+		return
+	}
+
+	handler.SuccessResponse(w, http.StatusNoContent, nil)
 }

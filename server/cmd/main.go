@@ -4,6 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	server "github.com/nikitinvitya/messenger"
@@ -24,13 +32,6 @@ import (
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"github.com/nikitinvitya/messenger/internal/service/userservice"
 	"github.com/nikitinvitya/messenger/internal/websocket"
-	"log"
-	"log/slog"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {
@@ -74,7 +75,7 @@ func main() {
 
 	authService := authservice.NewAuthService(userRepo, jwtSecret)
 	userService := userservice.NewUserService(userRepo)
-	chatService := chatservice.NewChatService(chatRepo)
+	chatService := chatservice.NewChatService(chatRepo, hub)
 	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo)
 	messageService := messageservice.NewMessageService(chatRepo, messageRepo, userRepo, hub, blocklistService)
 

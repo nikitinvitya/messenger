@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
+
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
+	"github.com/nikitinvitya/messenger/internal/websocket"
 )
 
 var (
@@ -20,15 +23,18 @@ type ChatService interface {
 	ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error)
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 	GetChatByID(ctx context.Context, userID int, chatID int) (*dto.ChatResponse, error)
+	LeaveChat(ctx context.Context, userID int, chatID int) error
 }
 
 type chatService struct {
 	repo chatrepository.ChatRepository
+	hub  *websocket.Hub
 }
 
-func NewChatService(repo chatrepository.ChatRepository) ChatService {
+func NewChatService(repo chatrepository.ChatRepository, hub *websocket.Hub) ChatService {
 	return &chatService{
 		repo: repo,
+		hub:  hub,
 	}
 }
 
@@ -121,4 +127,45 @@ func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (
 	result.Participants = participants
 
 	return &result, nil
+}
+
+func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) error {
+	isParticipant, err := s.repo.IsUserInChat(ctx, userID, chatID)
+
+	if err != nil {
+		return err
+	}
+
+	if !isParticipant {
+		return messageservice.ErrAccessDenied
+	}
+
+	if err = s.repo.LeaveChat(ctx, chatID, userID); err != nil {
+		return err
+	}
+
+	leavePayload := &dto.UserLeftPayload{
+		ChatID: chatID,
+		UserID: userID,
+	}
+
+	event := websocket.Event{
+		Type:    "user_left_chat",
+		Payload: leavePayload,
+	}
+
+	s.hub.Broadcast <- event
+
+	participantsCount, err := s.repo.CountChatParticipants(ctx, chatID)
+	if err != nil {
+		slog.Error("failed to count participants after leaving chat", "error", err, "chatID", chatID)
+	}
+	if participantsCount == 0 {
+		err = s.repo.DeleteChat(ctx, chatID)
+		if err != nil {
+			slog.Error("failed to delete chat", "error", err, "chatID", chatID)
+		}
+	}
+
+	return nil
 }
