@@ -12,6 +12,7 @@ const (
 	EventMessageUpdated EventType = "update_message"
 	EventMessageDeleted EventType = "delete_message"
 	EventUserLeftChat   EventType = "user_left_chat"
+	EventChatCreated    EventType = "chat_created"
 )
 
 type Event struct {

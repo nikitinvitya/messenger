@@ -3,6 +3,8 @@ package messageservice
 import (
 	"context"
 	"errors"
+	"log/slog"
+
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
@@ -11,7 +13,6 @@ import (
 	"github.com/nikitinvitya/messenger/internal/service/blocklistservice"
 	"github.com/nikitinvitya/messenger/internal/websocket"
 	"github.com/nikitinvitya/messenger/pkg/utils"
-	"log/slog"
 )
 
 var (
@@ -152,10 +153,12 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 		}
 	}
 
-	s.hub.Broadcast <- websocket.Event{
-		Type:    "create_message",
-		Payload: messagePayload,
+	participantsIDs, err := s.chatRepo.ListChatParticipantsID(ctx, chatID)
+	if err != nil {
+		slog.Error("failed to get participants for broadcast", "error", err, "chatID", chatID)
 	}
+
+	s.hub.SendToUsers(websocket.EventMessageCreated, messagePayload, participantsIDs)
 
 	return finalMessage, nil
 }
@@ -271,10 +274,12 @@ func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID in
 		}
 	}
 
-	s.hub.Broadcast <- websocket.Event{
-		Type:    "update_message",
-		Payload: messagePayload,
+	participantsIDs, err := s.chatRepo.ListChatParticipantsID(ctx, updatedMessage.ChatID)
+	if err != nil {
+		slog.Error("failed to get participants for broadcast", "error", err, "chatID", updatedMessage.ChatID)
 	}
+
+	s.hub.SendToUsers(websocket.EventMessageUpdated, messagePayload, participantsIDs)
 
 	return updatedMessage, nil
 }
@@ -301,10 +306,12 @@ func (s *messageService) DeleteMessage(ctx context.Context, userID, messageID in
 		ChatID: message.ChatID,
 	}
 
-	s.hub.Broadcast <- websocket.Event{
-		Type:    "delete_message",
-		Payload: deletePayload,
+	participantsIDs, err := s.chatRepo.ListChatParticipantsID(ctx, message.ChatID)
+	if err != nil {
+		slog.Error("failed to get participants for broadcast", "error", err, "chatID", message.ChatID)
 	}
+
+	s.hub.SendToUsers(websocket.EventMessageDeleted, deletePayload, participantsIDs)
 
 	return message, nil
 }
@@ -316,6 +323,11 @@ func (s *messageService) ForwardMessage(ctx context.Context, forwarderID, destin
 	}
 	if !isParticipant {
 		return ErrAccessDenied
+	}
+
+	participantsIDs, err := s.chatRepo.ListChatParticipantsID(ctx, destinationChatID)
+	if err != nil {
+		slog.Error("failed to get participants for broadcast", "error", err, "chatID", destinationChatID)
 	}
 
 	for _, messageID := range messageIDs {
@@ -345,15 +357,28 @@ func (s *messageService) ForwardMessage(ctx context.Context, forwarderID, destin
 			return err
 		}
 
-		fullForwardedMessage, err := s.messageRepo.GetMessageByID(ctx, forwardedMessageID)
+		finalMessage, err := s.messageRepo.GetMessageByID(ctx, forwardedMessageID)
 		if err != nil {
 			return err
 		}
 
-		s.hub.Broadcast <- websocket.Event{
-			Type:    "create_message",
-			Payload: fullForwardedMessage,
+		sender, _ := s.userRepo.GetUserByID(ctx, forwarderID)
+		messagePayload := &dto.MessageResponse{
+			ID:                  finalMessage.ID,
+			ChatID:              finalMessage.ChatID,
+			Content:             finalMessage.Content,
+			CreatedAt:           finalMessage.CreatedAt,
+			ForwardedFromUserID: finalMessage.ForwardedFromUserID,
+			ForwardedFromChatID: finalMessage.ForwardedFromChatID,
 		}
+		if sender != nil {
+			messagePayload.Sender = &dto.SenderInfo{
+				ID:       sender.ID,
+				Username: sender.Username,
+			}
+		}
+
+		s.hub.SendToUsers(websocket.EventMessageCreated, messagePayload, participantsIDs)
 	}
 
 	return nil
