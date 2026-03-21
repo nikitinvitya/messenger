@@ -100,7 +100,7 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 				r.Post("/forward/{chatID}", h.Message.ForwardMessage)
 			})
 
-			r.Get("/ws/chats/{chatID}", h.Websocket.ServeWs)
+			r.Get("/ws/connect", h.Websocket.ServeWs)
 
 			r.Route("/blocklist", func(r chi.Router) {
 				r.Post("/{userID}", h.Blocklist.Block)

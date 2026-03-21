@@ -52,6 +52,9 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chat
 		finalUserIDs = append(finalUserIDs, id)
 	}
 
+	var chatID int
+	var err error
+
 	if chatType == "private" {
 		if len(finalUserIDs) != 2 {
 			return 0, ErrInvalidParticipantsCount
@@ -66,13 +69,22 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chat
 			return existingChatID, nil
 		}
 
-		return s.repo.CreateChat(ctx, nil, chatType, finalUserIDs)
+		chatID, err = s.repo.CreateChat(ctx, nil, chatType, finalUserIDs)
 	} else if chatType == "group" {
 		if chatName == nil || *chatName == "" {
 			return 0, ErrInvalidChatName
 		}
 
-		return s.repo.CreateChat(ctx, chatName, chatType, finalUserIDs)
+		chatID, err = s.repo.CreateChat(ctx, chatName, chatType, finalUserIDs)
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	fullChatData, err := s.GetChatByID(ctx, creatorID, chatID)
+	if err == nil {
+		s.hub.SendToUsers(websocket.EventChatCreated, fullChatData, finalUserIDs)
 	}
 
 	return 0, ErrInvalidChatType
@@ -131,13 +143,16 @@ func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (
 
 func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) error {
 	isParticipant, err := s.repo.IsUserInChat(ctx, userID, chatID)
-
 	if err != nil {
 		return err
 	}
-
 	if !isParticipant {
 		return messageservice.ErrAccessDenied
+	}
+
+	participantIDs, err := s.repo.ListChatParticipantsID(ctx, chatID)
+	if err != nil {
+		return err
 	}
 
 	if err = s.repo.LeaveChat(ctx, chatID, userID); err != nil {
@@ -149,12 +164,7 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 		UserID: userID,
 	}
 
-	event := websocket.Event{
-		Type:    "user_left_chat",
-		Payload: leavePayload,
-	}
-
-	s.hub.Broadcast <- event
+	s.hub.SendToUsers(websocket.EventUserLeftChat, leavePayload, participantIDs)
 
 	participantsCount, err := s.repo.CountChatParticipants(ctx, chatID)
 	if err != nil {

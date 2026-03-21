@@ -83,7 +83,7 @@ func main() {
 	userHandler := userhandler.NewUserHandler(userService)
 	chatHandler := chathandler.NewChatHandler(chatService)
 	messageHandler := messagehandler.NewMessageHandler(messageService)
-	websocketHandler := websockethandler.NewWebsocketHandler(hub, chatService)
+	websocketHandler := websockethandler.NewWebsocketHandler(hub)
 	blocklistHandler := blocklisthandler.NewBlocklistHandler(blocklistService)
 
 	apiHandlersDeps := handler.APIHandlersDeps{
