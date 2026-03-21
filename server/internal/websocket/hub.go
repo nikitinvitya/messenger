@@ -5,28 +5,52 @@ import (
 	"log/slog"
 )
 
+type EventType string
+
+const (
+	EventMessageCreated EventType = "create_message"
+	EventMessageUpdated EventType = "update_message"
+	EventMessageDeleted EventType = "delete_message"
+	EventUserLeftChat   EventType = "user_left_chat"
+)
+
 type Event struct {
-	Type    string      `json:"type"`
+	Type    EventType   `json:"type"`
 	Payload interface{} `json:"payload"`
 }
 
-type Broadcaster interface {
-	GetChatID() int
+type BroadcastMessage struct {
+	Event         Event
+	TargetUserIDs []int
 }
 
 type Hub struct {
-	rooms      map[int]map[*Client]bool
-	Broadcast  chan Event
+	clients    map[int]map[*Client]bool
+	Broadcast  chan BroadcastMessage
 	Register   chan *Client
 	Unregister chan *Client
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		rooms:      make(map[int]map[*Client]bool),
-		Broadcast:  make(chan Event),
+		clients:    make(map[int]map[*Client]bool),
+		Broadcast:  make(chan BroadcastMessage),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
+	}
+}
+
+func (h *Hub) SendToUsers(eventType EventType, payload interface{}, userIDs []int) {
+	if len(userIDs) == 0 {
+		return
+	}
+
+	h.Broadcast <- BroadcastMessage{
+		Event: Event{
+			Type:    eventType,
+			Payload: payload,
+		},
+		TargetUserIDs: userIDs,
 	}
 }
 
@@ -34,48 +58,40 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
-			room, ok := h.rooms[client.ChatID]
-			if !ok {
-				room = make(map[*Client]bool)
-				h.rooms[client.ChatID] = room
+			if h.clients[client.UserID] == nil {
+				h.clients[client.UserID] = make(map[*Client]bool)
 			}
+			h.clients[client.UserID][client] = true
+			slog.Info("client registered globally", "userID", client.UserID)
 
-			room[client] = true
-			slog.Info("client registered", "userID", client.UserID, "chatID", client.ChatID)
 		case client := <-h.Unregister:
-			if room, ok := h.rooms[client.ChatID]; ok {
-				if _, ok = room[client]; ok {
-					delete(room, client)
+			if userClients, ok := h.clients[client.UserID]; ok {
+				if _, ok := userClients[client]; ok {
+					delete(userClients, client)
 					close(client.Send)
-					if len(room) == 0 {
-						delete(h.rooms, client.ChatID)
+					if len(userClients) == 0 {
+						delete(h.clients, client.UserID)
 					}
 				}
 			}
-			slog.Info("client unregistered", "userID", client.UserID, "chatID", client.ChatID)
-		case event := <-h.Broadcast:
-			payloadWithChatID, ok := event.Payload.(Broadcaster)
-			if !ok {
-				slog.Error("broadcast event payload does not implement Broadcaster interface")
+			slog.Info("client unregistered", "userID", client.UserID)
+
+		case bMsg := <-h.Broadcast:
+			messageJSON, err := json.Marshal(bMsg.Event)
+			if err != nil {
+				slog.Error("failed to marshal message", "error", err)
 				continue
 			}
-			chatID := payloadWithChatID.GetChatID()
 
-			if room, ok := h.rooms[chatID]; ok {
-				slog.Info("broadcasting event", "type", event.Type, "chatID", chatID, "clients_in_room", len(room))
-
-				messageJSON, err := json.Marshal(event)
-				if err != nil {
-					slog.Error("failed to marshal message for broadcast", "error", err)
-					continue
-				}
-
-				for client := range room {
-					select {
-					case client.Send <- messageJSON:
-					default:
-						close(client.Send)
-						delete(room, client)
+			for _, userID := range bMsg.TargetUserIDs {
+				if userClients, ok := h.clients[userID]; ok {
+					for client := range userClients {
+						select {
+						case client.Send <- messageJSON:
+						default:
+							close(client.Send)
+							delete(userClients, client)
+						}
 					}
 				}
 			}

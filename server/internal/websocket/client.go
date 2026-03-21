@@ -1,9 +1,10 @@
 package websocket
 
 import (
-	"github.com/gorilla/websocket"
 	"log/slog"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -18,7 +19,6 @@ type Client struct {
 	Conn   *websocket.Conn
 	Send   chan []byte
 	UserID int
-	ChatID int
 }
 
 func (c *Client) ReadPump() {
