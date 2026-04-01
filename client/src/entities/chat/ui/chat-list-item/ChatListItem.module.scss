@@ -1,6 +1,6 @@
 .chatItem {
   min-width: 100vw;
-  height: 72px;
+  height: var(--list-item-height);
   display: grid;
   align-items: center;
   grid-template-columns: 6fr 1fr;

@@ -1,7 +1,10 @@
 import {ChatsView} from "@/views/chats";
+import {getChats} from "@/entities/chat/api/getChats";
 
-export default function Chats() {
+export default async function Chats() {
+  const chats = await getChats()
+
   return (
-    <ChatsView />
+    <ChatsView chats={chats}/>
   )
 }
