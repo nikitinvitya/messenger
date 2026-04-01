@@ -155,6 +155,19 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 		return err
 	}
 
+	chat, err := s.repo.GetChatByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+	if chat.Type == "private" {
+		if err := s.repo.DeleteChat(ctx, chatID); err != nil {
+			return err
+		}
+
+		s.hub.SendToUsers(websocket.EventChatDeleted, map[string]int{"chatID": chatID}, participantIDs)
+		return nil
+	}
+
 	if err = s.repo.LeaveChat(ctx, chatID, userID); err != nil {
 		return err
 	}
