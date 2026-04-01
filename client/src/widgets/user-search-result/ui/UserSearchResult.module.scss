@@ -1,0 +1,22 @@
+.userSearchResult {
+  height: calc(100vh - var(--navbar-height));
+  overflow-y: scroll;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+
+  .userSearchResultItem {
+    height: var(--list-item-height);
+    flex-shrink: 0;
+    cursor: pointer;
+    border-bottom: 1px solid #c2c2c2;
+    display: flex;
+    font: var(--font-m);
+    padding: 5px 10px;
+  }
+
+  .notFound {
+    margin: auto 0;
+  }
+
+}
