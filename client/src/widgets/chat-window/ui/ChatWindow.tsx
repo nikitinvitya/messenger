@@ -17,7 +17,7 @@ interface ChatWindowProps {
   className?: string;
   initialMessages: Message[];
   blockStatus: MessageApiResponse["blockStatus"];
-  chatID: string;
+  chatID: number;
   chatName: string;
   chatType: Chat["type"];
 }
@@ -49,7 +49,7 @@ export const ChatWindow = (props: ChatWindowProps) => {
 
   return (
     <Box className={classNames(cls.chatWindow)} style={{backgroundImage: `url(${wallpaper.src})`}}>
-      <ChatHeader chatName={chatName} />
+      <ChatHeader chatName={chatName} chatID={chatID}/>
       <MessageList
         chatType={chatType}
         initialMessages={initialMessages} />

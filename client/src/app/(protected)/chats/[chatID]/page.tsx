@@ -14,5 +14,7 @@ export default async function ChatPage({ params }: ChatPageProps) {
     notFound();
   }
 
-  return <ChatView chatID={chatID} />;
+  const numericChatID = parseInt(chatID)
+
+  return <ChatView chatID={numericChatID} />;
 }
