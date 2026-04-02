@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { JWT_TOKEN_KEY } from '@/shared/constants/cookie';
 import {MessageApiResponse} from "@/entities/message";
 
-export const getMessages = async (chatID: string, page: number = 1): Promise<MessageApiResponse> => {
+export const getMessages = async (chatID: number, page: number = 1): Promise<MessageApiResponse> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(JWT_TOKEN_KEY);
 
