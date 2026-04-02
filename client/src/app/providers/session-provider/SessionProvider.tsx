@@ -4,6 +4,7 @@ import {useUserStore} from "@/entities/user";
 import {ReactNode, useEffect} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {AppRoutes} from "@/shared/config/routes";
+import {websocketService} from "@/shared/api/websocket";
 
 const SessionInitializer = () => {
   const { user, isLoading, fetchUser } = useUserStore();
@@ -16,6 +17,20 @@ const SessionInitializer = () => {
 
   const publicPaths = [AppRoutes.login, AppRoutes.signup];
   const isPublicPage = publicPaths.some(path => path === pathname);
+
+  useEffect(() => {
+    if(isLoading) return
+
+    if(user) {
+      websocketService.connect().catch(() => console.error())
+    } else {
+      websocketService.disconnect()
+    }
+
+    return () => {
+      websocketService.disconnect()
+    }
+  }, [isLoading, user]);
 
   useEffect(() => {
     if (isLoading) return;
