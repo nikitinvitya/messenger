@@ -34,7 +34,6 @@ export const UserSearchResult = ({ users }: UserSearchResultProps) => {
         users.map(user => (
           <Box
             key={user.id}
-            // Передаем событие 'e' в функцию
             onClick={(e) => handleUserSelect(e, user)}
             className={cls.userSearchResultItem}
           >
@@ -42,7 +41,7 @@ export const UserSearchResult = ({ users }: UserSearchResultProps) => {
           </Box>
         ))
       ) : (
-        <Text className={cls.notFound}>Not found</Text>
+        <Text className={cls.notFound}>Not found users</Text>
       )}
     </Box>
   );
