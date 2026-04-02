@@ -12,34 +12,38 @@ interface UserSearchResultProps {
   users: UserSearchResponse[];
 }
 
-export const UserSearchResult = ({users}: UserSearchResultProps) => {
+export const UserSearchResult = ({ users }: UserSearchResultProps) => {
+  const router = useRouter();
 
-  const router = useRouter()
+  const handleUserSelect = async (e: React.MouseEvent, user: UserSearchResponse) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-  const handleUserSelect = async (user: UserSearchResponse) => {
     try {
-        const res = await createChat([user.id])
-        router.push(`${AppRoutes.chats}/${res.chatID}`)
-    } catch (e) {
-      console.log(e)
+      const res = await createChat([user.id]);
+      router.push(`${AppRoutes.chats}/${res.chatID}`);
+    } catch (e: any) {
+      if (e.code === 'ECONNABORTED' || e.name === 'CanceledError') return;
+      console.log('Chat creation error:', e);
     }
-  }
+  };
 
   return (
     <Box className={cls.userSearchResult}>
-      {
-        users.length !== 0
-        ? users.map(user => (
-        <Box
-          key={user.id}
-          onClick={() => handleUserSelect(user)}
-          className={cls.userSearchResultItem}
-        >{user.username}</Box>
-      ))
-      :
-      <Text className={cls.notFound}>Not found</Text>
-      }
+      {users.length !== 0 ? (
+        users.map(user => (
+          <Box
+            key={user.id}
+            // Передаем событие 'e' в функцию
+            onClick={(e) => handleUserSelect(e, user)}
+            className={cls.userSearchResultItem}
+          >
+            {user.username}
+          </Box>
+        ))
+      ) : (
+        <Text className={cls.notFound}>Not found</Text>
+      )}
     </Box>
   );
 };
-
