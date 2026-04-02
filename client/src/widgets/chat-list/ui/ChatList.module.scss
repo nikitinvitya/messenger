@@ -5,4 +5,9 @@
   height: calc(100vh - var(--navbar-height));
   overflow-y: scroll;
   gap: 0;
+
+  .emptyChatList {
+    font: var(--font-m);
+    margin: auto;
+  }
 }
