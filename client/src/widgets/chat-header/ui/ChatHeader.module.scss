@@ -2,8 +2,8 @@
   min-width: 100vw;
   min-height: var(--navbar-height);
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
-  justify-content: space-between;
+  grid-template-columns: 40px 1fr 40px;
+  gap: 20px;
   align-items: center;
   padding: 0 5px;
   background-color: var(--header-color);
@@ -14,6 +14,15 @@
   }
 
   .chatName {
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font: var(--font-m);
+  }
+
+  .menuWrapper {
+    justify-self: end;
+    padding-right: 10px;
   }
 }

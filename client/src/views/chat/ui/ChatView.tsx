@@ -5,7 +5,7 @@ import { Box } from '@mantine/core';
 import {ChatWindow} from "@/widgets/chat-window";
 
 interface ChatViewProps {
-  chatID: string;
+  chatID: number;
 }
 
 export async function ChatView({ chatID }: ChatViewProps) {

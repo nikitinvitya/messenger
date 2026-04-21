@@ -1,16 +1,15 @@
-import {api} from './index';
-import {useMessageStore} from '@/entities/message/model/store';
+import { api } from './index';
+import { useMessageStore } from '@/entities/message/model/store';
+import { useChatStore } from '@/entities/chat/model/store';
+import { useUserStore } from '@/entities/user/model/store';
 
 const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL;
 
-interface WebSocketEvent {
-  type: 'create_message' | 'update_message' | 'delete_message';
-  payload: any;
-}
+type EventType = 'create_message' | 'update_message' | 'delete_message' | 'user_left_chat' | 'chat_created' | 'chat_deleted';
 
-interface DeletedMessagePayload {
-  id: number;
-  chat_id: number;
+interface WebSocketEvent {
+  type: EventType;
+  payload: any;
 }
 
 class WebSocketService {
@@ -21,20 +20,18 @@ class WebSocketService {
     return response.data.ticket;
   }
 
-  public async connect(chatID: string): Promise<void> {
-    if (this.socket) {
-      if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
-        return;
-      }
+  public async connect(): Promise<void> {
+    if (this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING) {
+      return;
     }
 
     try {
       const ticket = await this.getTicket();
-      const url = `${WS_BASE_URL}/ws/chats/${chatID}?token=${ticket}`;
+      const url = `${WS_BASE_URL}/ws/connect?token=${ticket}`;
       this.socket = new WebSocket(url);
       this.setupEventListeners();
     } catch (error) {
-      console.error('Failed to get WebSocket ticket:', error);
+      console.error('Failed to establish global WebSocket connection:', error);
     }
   }
 
@@ -48,54 +45,74 @@ class WebSocketService {
   private setupEventListeners(): void {
     if (!this.socket) return;
 
-    this.socket.onopen = () => {
-      console.log('WebSocket connection established.');
-    };
-
     this.socket.onmessage = (event) => {
       try {
-        console.log('Message from server:', event.data);
         const parsedEvent: WebSocketEvent = JSON.parse(event.data);
+        const { type, payload } = parsedEvent;
 
         const { addMessage, updateMessage, deleteMessage } = useMessageStore.getState();
+        const { removeChat, addChat, updateChat } = useChatStore.getState();
+        const { user: currentUser } = useUserStore.getState();
 
-        switch (parsedEvent.type) {
+        switch (type) {
           case 'create_message':
-          case 'update_message': {
-            const message = parsedEvent.payload;
-            addMessage(message);
-            break;
-          }
+            updateChat(payload.chatId, { lastMessage: payload });
 
-          case 'delete_message': {
-            const payload = parsedEvent.payload as DeletedMessagePayload;
+            if (window.location.pathname === `/chats/${payload.chatId}`) {
+              addMessage(payload);
+            }
+            break;
+
+          case 'update_message':
+            updateMessage(payload);
+            break;
+
+          case 'delete_message':
             deleteMessage({ id: payload.id });
             break;
-          }
+
+          case 'chat_created':
+            addChat(payload);
+            break;
+
+          case 'user_left_chat':
+            const eventUserId = payload.userId;
+            const eventChatId = payload.chatId;
+            console.log('User left event received:', { eventUserId, eventChatId, currentUserId: currentUser?.id });
+            if (currentUser && payload.userId === currentUser.id) {
+              removeChat(eventChatId);
+              if (window.location.pathname === `/chats/${eventChatId}`) {
+                window.location.href = '/chats';
+              }
+            } else {
+              console.log('Other user left chat:', payload.userId);
+            }
+            break;
+
+          case 'chat_deleted':
+            const deletedChatId = payload.chatId || payload.chatID;
+            console.log('WS: chat_deleted received for ID:', deletedChatId);
+
+            if (deletedChatId) {
+              removeChat(deletedChatId);
+              if (window.location.pathname === `/chats/${deletedChatId}`) {
+                window.location.href = '/chats';
+              }
+            }
+            break;
 
           default:
-            console.warn('Unknown WebSocket event type:', parsedEvent.type);
+            console.warn('Unknown WebSocket event type:', type);
         }
       } catch (error) {
-        console.error('Failed to process WebSocket message:', error);
+        console.error('Error processing WS message:', error);
       }
-    };
-
-
-    this.socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    this.socket.onclose = (event) => {
-      this.socket = null;
     };
   }
 
   public sendMessage(data: any): void {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    if (this.socket?.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(data));
-    } else {
-      console.error('WebSocket is not connected.');
     }
   }
 }

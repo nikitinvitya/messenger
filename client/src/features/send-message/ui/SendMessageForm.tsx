@@ -8,7 +8,7 @@ import SendIcon from "@/shared/assets/SendIcon.svg"
 
 interface SendMessageFormProps {
   className?: string;
-  chatID: string;
+  chatID: number;
 }
 
 export const SendMessageForm = ({chatID}: SendMessageFormProps) => {
