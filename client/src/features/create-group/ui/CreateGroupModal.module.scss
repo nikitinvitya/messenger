@@ -1,0 +1,77 @@
+.modalContent {
+  border-radius: 16px;
+  overflow: visible;
+}
+
+.modalHeader {
+  border-radius: 16px;
+  padding: 20px 20px 0 20px;
+}
+
+.modalTitle {
+  font: var(--font-m);
+}
+
+.modalBody {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.selectedUsersList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.userBadge {
+  text-transform: none;
+}
+
+.searchWrapper {
+  position: relative;
+}
+
+.resultsDropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 100;
+
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: scroll;
+}
+
+.resultItem {
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--mantine-color-blue-0);
+
+    & p {
+      color: var(--mantine-color-blue-7);
+    }
+  }
+}
+
+.modalBtn {
+  font-weight: 600;
+}
