@@ -76,6 +76,8 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chat
 		}
 
 		chatID, err = s.repo.CreateChat(ctx, chatName, chatType, finalUserIDs)
+	} else {
+		return 0, ErrInvalidChatType
 	}
 
 	if err != nil {
@@ -87,7 +89,7 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chat
 		s.hub.SendToUsers(websocket.EventChatCreated, fullChatData, finalUserIDs)
 	}
 
-	return 0, ErrInvalidChatType
+	return chatID, nil
 }
 
 func (s *chatService) ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error) {
