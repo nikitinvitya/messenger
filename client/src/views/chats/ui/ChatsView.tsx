@@ -9,6 +9,7 @@ import {useState} from "react";
 import {Chat} from "@/entities/chat";
 import {UserSearchResponse} from "@/entities/user/model/model";
 import {UserSearchResult} from "@/widgets/user-search-result/ui/UserSearchResult";
+import {CreateGroupButton} from "@/features/create-group-button";
 
 interface ChatsViewProps {
   chats: Chat[];
@@ -27,6 +28,8 @@ export const ChatsView = ({chats}: ChatsViewProps) => {
       :
         <ChatList chatList={chats} />
       }
+
+      {!isActiveSearch && <CreateGroupButton/>}
     </Box>
   );
 };
