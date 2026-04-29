@@ -19,6 +19,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/handler/authhandler"
 	"github.com/nikitinvitya/messenger/internal/handler/blocklisthandler"
 	"github.com/nikitinvitya/messenger/internal/handler/chathandler"
+	"github.com/nikitinvitya/messenger/internal/handler/mediahandler"
 	"github.com/nikitinvitya/messenger/internal/handler/messagehandler"
 	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
 	"github.com/nikitinvitya/messenger/internal/handler/websockethandler"
@@ -64,6 +65,12 @@ func main() {
 	}
 	slog.Info("Successfully connected to the database!")
 
+	uploadDir := "./uploads"
+
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		_ = os.Mkdir(uploadDir, os.ModePerm)
+	}
+
 	hub := websocket.NewHub()
 	go hub.Run()
 	slog.Info("Websocket Hub started")
@@ -85,6 +92,7 @@ func main() {
 	messageHandler := messagehandler.NewMessageHandler(messageService)
 	websocketHandler := websockethandler.NewWebsocketHandler(hub)
 	blocklistHandler := blocklisthandler.NewBlocklistHandler(blocklistService)
+	mediaH := mediahandler.NewMediaHandler(uploadDir)
 
 	apiHandlersDeps := handler.APIHandlersDeps{
 		Auth:      authHandler,
@@ -94,6 +102,7 @@ func main() {
 		Websocket: websocketHandler,
 		Blocklist: blocklistHandler,
 		JwtSecret: jwtSecret,
+		Media:     mediaH,
 	}
 
 	apiHandlers := handler.NewAPIHandlers(apiHandlersDeps)

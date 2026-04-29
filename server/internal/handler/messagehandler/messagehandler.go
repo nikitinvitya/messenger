@@ -2,14 +2,15 @@ package messagehandler
 
 import (
 	"errors"
+	"net/http"
+	"strconv"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nikitinvitya/messenger/internal/handler/helper"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	handler "github.com/nikitinvitya/messenger/internal/handler/response"
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
-	"net/http"
-	"strconv"
 )
 
 type MessageHandler struct {
@@ -43,15 +44,16 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var requestBody struct {
-		Content          string `json:"content" validate:"required,min=1"`
-		ReplyToMessageID *int   `json:"replyToMessageID,omitempty"`
+		Content          string  `json:"content"`
+		ImageURL         *string `json:"imageURL"`
+		ReplyToMessageID *int    `json:"replyToMessageID,omitempty"`
 	}
 
 	if !helper.ValidateRequest(w, r, &requestBody) {
 		return
 	}
 
-	message, err := h.messageService.CreateMessage(r.Context(), userID, chatID, requestBody.Content, requestBody.ReplyToMessageID)
+	message, err := h.messageService.CreateMessage(r.Context(), userID, chatID, requestBody.Content, requestBody.ReplyToMessageID, requestBody.ImageURL)
 	if err != nil {
 		switch {
 		case errors.Is(err, messageservice.ErrAccessDenied):
