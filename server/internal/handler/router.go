@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -10,6 +11,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/handler/authhandler"
 	"github.com/nikitinvitya/messenger/internal/handler/blocklisthandler"
 	"github.com/nikitinvitya/messenger/internal/handler/chathandler"
+	"github.com/nikitinvitya/messenger/internal/handler/mediahandler"
 	"github.com/nikitinvitya/messenger/internal/handler/messagehandler"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	"github.com/nikitinvitya/messenger/internal/handler/userhandler"
@@ -23,6 +25,7 @@ type APIHandlersDeps struct {
 	Message   *messagehandler.MessageHandler
 	Websocket *websockethandler.WebsocketHandler
 	Blocklist *blocklisthandler.BlocklistHandler
+	Media     *mediahandler.MediaHandler
 	JwtSecret string
 }
 
@@ -33,6 +36,7 @@ type APIHandlers struct {
 	Message   *messagehandler.MessageHandler
 	Websocket *websockethandler.WebsocketHandler
 	Blocklist *blocklisthandler.BlocklistHandler
+	Media     *mediahandler.MediaHandler
 	jwtSecret string
 }
 
@@ -44,6 +48,7 @@ func NewAPIHandlers(deps APIHandlersDeps) *APIHandlers {
 		Message:   deps.Message,
 		Websocket: deps.Websocket,
 		Blocklist: deps.Blocklist,
+		Media:     deps.Media,
 		jwtSecret: deps.JwtSecret,
 	}
 }
@@ -69,6 +74,10 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 	router.Use(chiMiddleware.RequestID)
 	router.Use(chiMiddleware.RealIP)
 
+	workDir, _ := os.Getwd()
+	filesDir := http.Dir(filepath.Join(workDir, "uploads"))
+	router.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(filesDir)))
+
 	router.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", h.Auth.Register)
@@ -79,6 +88,8 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(h.jwtSecret))
 			r.Get("/auth/ws-ticket", h.Auth.GetWSTicket)
+
+			r.Post("/media/upload", h.Media.Upload)
 
 			r.Route("/users", func(r chi.Router) {
 				r.Get("/me", h.User.GetMyProfile)
