@@ -1,5 +1,6 @@
 .messageWrapper {
   display: flex;
+  margin-bottom: 2px;
 
   &.myMessageWrapper {
     justify-content: flex-end;
@@ -13,27 +14,58 @@
 }
 
 .messageItem {
-  max-width: 80%;
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  padding: 8px 12px;
+  max-width: 400px;
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
   border-radius: 16px;
   position: relative;
   word-break: break-word;
+  overflow-wrap: anywhere;
   line-height: 1.2;
+}
 
-  .messageContent {
-    font: var(--font-s);
-  }
+.contentAndTime {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 2px 8px 4px 8px;
+}
 
-  .messageTime {
-    font-size: 0.7rem;
-    margin-left: auto;
-    white-space: nowrap;
-    padding-left: 8px;
-    opacity: 0.5;
-    color: #000;
+.messageContent {
+  font: var(--font-s);
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.messageTime {
+  font-size: 0.65rem;
+  white-space: nowrap;
+  opacity: 0.5;
+  color: #000;
+  margin-bottom: 1px;
+}
+
+.imageWrapper {
+  width: 100%;
+
+  img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 12px;
+    max-height: 500px;
+    object-fit: cover;
+    transition: filter 0.2s ease;
+
+    &:hover {
+      filter: brightness(0.9);
+    }
   }
 }
 
@@ -42,7 +74,8 @@
   font-size: 0.75rem;
   font-weight: 600;
   opacity: 0.6;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  padding: 4px 8px 0;
   color: #ff3232;
 }
 
@@ -88,4 +121,29 @@
   height: 10px;
   clip-path: polygon(100% 0, 0 100%, 100% 100%);
   background-color: #fff;
+}
+
+.modalOverlay {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.modalBody {
+  padding: 0 !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fullImage {
+  max-width: 95vw;
+  max-height: 95vh;
+  object-fit: contain;
+  border-radius: 4px;
+  cursor: pointer;
 }
