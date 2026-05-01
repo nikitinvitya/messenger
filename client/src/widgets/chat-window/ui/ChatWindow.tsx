@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import classNames from 'classnames';
 import { Box, Button, Text } from '@mantine/core';
-import {type Message, MessageApiResponse, useMessageStore} from '@/entities/message'; // <-- Импортируем стор
+import {type Message, MessageApiResponse, useMessageStore} from '@/entities/message';
 import { ChatHeader } from '@/widgets/chat-header';
 import { MessageList } from '@/widgets/message-list';
 import { SendMessageForm } from '@/features/send-message';
@@ -28,7 +28,7 @@ export const ChatWindow = (props: ChatWindowProps) => {
   const clearMessages = useMessageStore((state) => state.clearMessages);
 
   useEffect(() => {
-    websocketService.connect(chatID);
+    websocketService.connect().then(r => console.error());
 
     return () => {
       websocketService.disconnect();

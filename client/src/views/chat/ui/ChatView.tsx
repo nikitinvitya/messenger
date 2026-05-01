@@ -3,6 +3,7 @@ import { getChatById } from '@/entities/chat/api/getChatById';
 import { getCurrentUser } from '@/entities/user/api/getCurrentUser';
 import { Box } from '@mantine/core';
 import {ChatWindow} from "@/widgets/chat-window";
+import {ForwardModal} from "@/features/forward-modal";
 
 interface ChatViewProps {
   chatID: number;
@@ -36,6 +37,7 @@ export async function ChatView({ chatID }: ChatViewProps) {
         chatName={chatName}
         chatType={chat.type}
       />
+      <ForwardModal />
     </Box>
   );
 }

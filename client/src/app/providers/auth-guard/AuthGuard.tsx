@@ -4,7 +4,7 @@ import { useUserStore } from '@/entities/user';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 import { AppRoutes } from '@/shared/config/routes';
-import { Loader } from '@mantine/core'; // Или ваш кастомный лоадер
+import { Loader } from '@mantine/core';
 
 export const AuthGuard = ({ children }: { children: ReactNode }) => {
   const { user, isLoading } = useUserStore();

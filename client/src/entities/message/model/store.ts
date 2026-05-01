@@ -3,6 +3,9 @@ import type {Message} from './model';
 
 interface MessageState {
   messages: Message[];
+  editingMessage: Message | null;
+  replyingToMessage: Message | null;
+  forwardingMessage: Message | null;
 }
 
 interface MessageActions {
@@ -11,10 +14,16 @@ interface MessageActions {
   updateMessage: (updatedMessage: Message) => void;
   deleteMessage: (payload: { id: number }) => void;
   clearMessages: () => void;
+  setEditingMessage: (message: Message | null) => void;
+  setReplyingToMessage: (message: Message | null) => void;
+  setForwardingMessage: (message: Message | null) => void;
 }
 
 export const useMessageStore = create<MessageState & MessageActions>((set) => ({
   messages: [],
+  editingMessage: null,
+  replyingToMessage: null,
+  forwardingMessage: null,
 
   setInitialMessages: (messages) => set({ messages }),
 
@@ -35,4 +44,10 @@ export const useMessageStore = create<MessageState & MessageActions>((set) => ({
   })),
 
   clearMessages: () => set({ messages: [] }),
+
+  setEditingMessage: (message) => set({ editingMessage: message, replyingToMessage: null }),
+
+  setReplyingToMessage: (message) => set({ replyingToMessage: message, editingMessage: null }),
+
+  setForwardingMessage: (message) => set({ forwardingMessage: message }),
 }));

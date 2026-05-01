@@ -2,13 +2,21 @@
 
 import classNames from 'classnames';
 import cls from './MessageItem.module.scss'
-import {Box, Text, Modal} from "@mantine/core";
+import {Box, Text, Modal, ActionIcon, Group} from "@mantine/core";
 import {Message} from "@/entities/message";
 import {useUserStore} from "@/entities/user";
 import {Chat} from "@/entities/chat";
 import {BASE_URL} from "@/shared/constants/api";
 import { Image as MantineImage } from "@mantine/core";
 import { useDisclosure } from '@mantine/hooks';
+import { useMessageStore } from "../../model/store";
+import { deleteMessage } from "../../api/deleteMessage";
+
+import ReplyIcon from "@/shared/assets/ReplyIcon.svg";
+import ForwardIcon from "@/shared/assets/ForwardIcon.svg";
+import EditIcon from "@/shared/assets/EditIcon.svg";
+import DeleteIcon from "@/shared/assets/DeleteIcon.svg";
+import Image from "next/image";
 
 interface MessageItemProps {
   className?: string;
@@ -22,8 +30,13 @@ export const MessageItem = (props: MessageItemProps) => {
   const { messageInfo, isLastOfGroup, isFirstOfGroup, chatType } = props;
   const [opened, { open, close }] = useDisclosure(false);
 
+  const { messages, setEditingMessage, setReplyingToMessage, setForwardingMessage } = useMessageStore();
   const currentUser = useUserStore((state) => state.user);
   const isCurrentUserMessage = currentUser?.id === messageInfo.sender.id;
+
+  const repliedMessage = messageInfo.replyToMessageId
+    ? messages.find(m => m.id === messageInfo.replyToMessageId)
+    : null;
 
   const wrapperClass = classNames(cls.messageWrapper, {
     [cls.myMessageWrapper]: isCurrentUserMessage,
@@ -41,8 +54,30 @@ export const MessageItem = (props: MessageItemProps) => {
   const SERVER_URL = BASE_URL!.replace('/api/v1', '');
   const fullImageUrl = `${SERVER_URL}${messageInfo.imageURL}`;
 
+  const handleDelete = async () => {
+    try {
+      await deleteMessage(messageInfo.id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const scrollToOriginal = () => {
+    if (!messageInfo.replyToMessageId) return;
+
+    const element = document.getElementById(`message-${messageInfo.replyToMessageId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      element.classList.add(cls.highlighted);
+      setTimeout(() => {
+        element.classList.remove(cls.highlighted);
+      }, 1500);
+    }
+  };
+
   return (
-    <div className={wrapperClass}>
+    <div className={wrapperClass} id={`message-${messageInfo.id}`}>
       <Modal
         opened={opened}
         onClose={close}
@@ -59,8 +94,54 @@ export const MessageItem = (props: MessageItemProps) => {
       </Modal>
 
       <Box className={bubbleClass}>
+        <div className={cls.actionsOverlay}>
+          <Group gap={6} wrap="nowrap">
+            <ActionIcon onClick={() => setReplyingToMessage(messageInfo)} className={cls.actionBubble} variant="filled" radius="xl" size="lg">
+              <Image src={ReplyIcon.src} width={16} height={16} alt="reply" />
+            </ActionIcon>
+
+            <ActionIcon
+              onClick={() => setForwardingMessage(messageInfo)}
+              className={cls.actionBubble}
+              variant="filled"
+              radius="xl"
+              size="lg">
+              <Image src={ForwardIcon.src} width={16} height={16} alt="forward" />
+            </ActionIcon>
+
+            {isCurrentUserMessage && (
+              <>
+                <ActionIcon onClick={() => setEditingMessage(messageInfo)} className={cls.actionBubble} variant="filled" radius="xl" size="lg">
+                  <Image src={EditIcon.src} width={16} height={16} alt="edit" />
+                </ActionIcon>
+                <ActionIcon onClick={handleDelete} className={cls.actionBubble} variant="filled" radius="xl" size="lg" color="red">
+                  <Image src={DeleteIcon.src} width={16} height={16} alt="delete" />
+                </ActionIcon>
+              </>
+            )}
+          </Group>
+        </div>
+
         {isVisibleUsername && (
           <Text className={cls.usernameInside}>{messageInfo.sender.username}</Text>
+        )}
+
+        {repliedMessage && (
+          <Box className={cls.replyQuote} onClick={scrollToOriginal}>
+            <div className={cls.accentBar} />
+            <div className={cls.replyInfo}>
+              <Text className={cls.replySender}>{repliedMessage.sender.username}</Text>
+              <Text className={cls.replyContent} truncate="end">
+                {repliedMessage.imageURL ? '📷 Photo' : repliedMessage.content}
+              </Text>
+            </div>
+          </Box>
+        )}
+
+        {messageInfo.forwardedFromUserId && (
+          <Text className={cls.forwardedLabel}>
+            Forwarded message
+          </Text>
         )}
 
         {messageInfo.imageURL && (
