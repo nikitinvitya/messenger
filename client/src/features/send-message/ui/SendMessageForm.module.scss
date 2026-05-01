@@ -1,19 +1,65 @@
-.formWrapper {
+.container {
+  position: fixed;
+  bottom: 10px;
+  left: 5px;
   width: calc(100vw - 10px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.previewWrapper {
+  display: flex;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 18px;
+  width: fit-content;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin-left: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+
+  .previewItem {
+    position: relative;
+    width: 60px;
+    height: 60px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    .removeBtn {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      padding: 0;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+.formWrapper {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
   border-radius: 2rem;
-  position: fixed;
-  bottom: 0;
-  z-index: 10;
-  margin-left: 5px;
-  margin-bottom: 10px;
-  margin-top: auto;
 
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+
+  .attachBtn {
+    &:hover {
+      background: none;
+    }
+  }
 
   .sendForm {
     flex-grow: 1;
@@ -21,12 +67,12 @@
     textarea {
       width: 100%;
       border-radius: 12px;
-      padding: 10px 14px;
+      padding: 10px 4px;
       border: none;
 
       font-size: 1rem;
       color: #000;
-      background-color: inherit;
+      background-color: transparent;
 
       &:focus {
         outline: none;
@@ -41,12 +87,11 @@
   }
 }
 
-
 .sendBtn {
   width: 45px;
   height: 45px;
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 45px;
+  min-height: 45px;
 
   margin-top: auto;
   padding: 0;
@@ -55,4 +100,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
+
+  transition: background-color 0.2s ease;
+
+  .sendImage {
+    filter: brightness(0) invert(1);
+  }
 }

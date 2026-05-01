@@ -2,8 +2,7 @@ import { api } from './index';
 import { useMessageStore } from '@/entities/message/model/store';
 import { useChatStore } from '@/entities/chat/model/store';
 import { useUserStore } from '@/entities/user/model/store';
-
-const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL;
+import {WS_BASE_URL} from "@/shared/constants/api"
 
 type EventType = 'create_message' | 'update_message' | 'delete_message' | 'user_left_chat' | 'chat_created' | 'chat_deleted';
 

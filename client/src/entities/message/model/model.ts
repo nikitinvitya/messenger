@@ -13,6 +13,7 @@ export interface Message {
   replyToMessageId?: number;
   forwardedFromUserId?: number;
   forwardedFromChatId?: number;
+  imageURL?: string;
 }
 
 export interface MessageApiResponse {
