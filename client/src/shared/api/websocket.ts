@@ -108,12 +108,6 @@ class WebSocketService {
       }
     };
   }
-
-  public sendMessage(data: any): void {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify(data));
-    }
-  }
 }
 
 export const websocketService = new WebSocketService();
