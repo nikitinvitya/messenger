@@ -4,6 +4,7 @@ import {Message} from '@/entities/message';
 interface SendMessageProps {
   content: string;
   imageURL?: string;
+  replyToMessageID?: number;
 }
 
 export const sendMessage = async (chatID: number, data:SendMessageProps): Promise<Message> => {
