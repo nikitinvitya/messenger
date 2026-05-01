@@ -28,10 +28,7 @@ export const ChatWindow = (props: ChatWindowProps) => {
   const clearMessages = useMessageStore((state) => state.clearMessages);
 
   useEffect(() => {
-    websocketService.connect().then(r => console.error());
-
     return () => {
-      websocketService.disconnect();
       clearMessages();
     };
   }, [chatID, clearMessages]);
