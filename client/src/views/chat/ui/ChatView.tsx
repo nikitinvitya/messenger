@@ -2,42 +2,55 @@ import { getMessages } from '@/entities/message/api/getMessages';
 import { getChatById } from '@/entities/chat/api/getChatById';
 import { getCurrentUser } from '@/entities/user/api/getCurrentUser';
 import { Box } from '@mantine/core';
-import {ChatWindow} from "@/widgets/chat-window";
-import {ForwardModal} from "@/features/forward-modal";
+import { ChatWindow } from "@/widgets/chat-window";
+import { ForwardModal } from "@/features/forward-modal";
+import { redirect } from 'next/navigation';
+import { AppRoutes } from "@/shared/config/routes";
+import axios from 'axios';
 
 interface ChatViewProps {
   chatID: number;
 }
 
 export async function ChatView({ chatID }: ChatViewProps) {
-  const [messagesData, chat, currentUser] = await Promise.all([
-    getMessages(chatID),
-    getChatById(chatID),
-    getCurrentUser(),
-  ]);
+  try {
+    const [messagesData, chat, currentUser] = await Promise.all([
+      getMessages(chatID),
+      getChatById(chatID),
+      getCurrentUser(),
+    ]);
 
-  let chatName = 'Chat';
-  if (chat.type === 'group' && chat.name) {
-    chatName = chat.name;
-  } else if (chat.type === 'private') {
-    const partner = chat.participants.find(p => p.id !== currentUser.id);
-    if (partner) {
-      chatName = partner.username;
-    } else {
-      chatName = "Saved Messages";
+    let chatName = 'Chat';
+    if (chat.type === 'group' && chat.name) {
+      chatName = chat.name;
+    } else if (chat.type === 'private') {
+      const partner = chat.participants.find(p => p.id !== currentUser.id);
+      if (partner) {
+        chatName = partner.username;
+      } else {
+        chatName = "Saved Messages";
+      }
     }
-  }
 
-  return (
-    <Box style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <ChatWindow
-        initialMessages={messagesData.messages}
-        blockStatus={messagesData.blockStatus}
-        chatID={chatID}
-        chatName={chatName}
-        chatType={chat.type}
-      />
-      <ForwardModal />
-    </Box>
-  );
+    return (
+      <Box style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <ChatWindow
+          initialMessages={messagesData.messages}
+          blockStatus={messagesData.blockStatus}
+          chatID={chatID}
+          chatName={chatName}
+          chatType={chat.type}
+        />
+        <ForwardModal />
+      </Box>
+    );
+
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 403 || error.response?.status === 404) {
+        redirect(AppRoutes.chats);
+      }
+    }
+    redirect(AppRoutes.chats);
+  }
 }
