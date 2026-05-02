@@ -1,10 +1,20 @@
-import { type ReactNode } from 'react';
+import {ReactNode} from 'react';
 import {AuthGuard} from "@/app/providers";
+import {Box} from "@mantine/core";
 
-export default function ProtectedLayout({ children }: { children: ReactNode }) {
+interface LayoutProps {
+  children: ReactNode;
+  modal: ReactNode;
+}
+
+export default function ProtectedLayout({children, modal}: LayoutProps) {
   return (
     <AuthGuard>
-      {children}
+      <Box style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
+        {children}
+
+        {modal}
+      </Box>
     </AuthGuard>
   );
 }

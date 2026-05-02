@@ -28,13 +28,13 @@ export const ChatList = ({ chatList, className }: ChatListProps) => {
   }, [chats]);
 
   return (
-    <Group className={classNames(cls.chatList, className)}>
+    <Box className={classNames(cls.chatList, className)}>
       {filteredChats.map(chat => (
         <ChatListItem chatInfo={chat} key={chat.id} />
       ))}
       {filteredChats.length === 0 && (
         <Box className={cls.emptyChatList}>There is no chats yet</Box>
       )}
-    </Group>
+    </Box>
   );
 };

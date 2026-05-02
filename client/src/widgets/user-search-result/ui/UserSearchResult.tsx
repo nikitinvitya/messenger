@@ -20,7 +20,10 @@ export const UserSearchResult = ({ users }: UserSearchResultProps) => {
     e.stopPropagation();
 
     try {
-      const res = await createChat([user.id]);
+      const res = await createChat({
+        userIDs: [user.id],
+        chatType: "private",
+      });
       router.push(`${AppRoutes.chats}/${res.chatID}`);
     } catch (e: any) {
       if (e.code === 'ECONNABORTED' || e.name === 'CanceledError') return;

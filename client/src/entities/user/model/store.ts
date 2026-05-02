@@ -11,6 +11,7 @@ interface UserState {
 interface UserActions {
   fetchUser: () => Promise<void>;
   logout: () => Promise<void>;
+  setUser: (user: User) => void;
 }
 
 const defaultUserState: UserState = {
@@ -47,4 +48,8 @@ export const useUserStore = create<UserState & UserActions>((set) => ({
       set({ isLoading: false })
     }
   },
+
+  setUser: (u: User) => {
+    set({user: u})
+  }
 }))

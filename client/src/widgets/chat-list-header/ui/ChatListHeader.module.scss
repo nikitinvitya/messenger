@@ -1,21 +1,49 @@
 .chatListHeader {
   height: var(--navbar-height);
-  min-width: 100vw;
+  width: 100%;
   background-color: var(--header-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   padding: 5px 10px;
   display: grid;
-  grid-template-columns: 1fr 4fr;
+  grid-template-columns: 50px 1fr;
   align-items: center;
+  gap: 10px;
+}
 
-  .headerButton {
-    background-color: transparent;
-    height: 80%;
-    width: 40%;
-    border-radius: 50%;
+.leftSection {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
 
-    :hover {
-      background-color: rgba(0, 0, 0, 0.07);
-    }
+.headerButton {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  position: relative;
+  border: none;
+  min-width: unset;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.07);
+  }
+}
+
+.arrowImage {
+  padding: 8px;
+  object-fit: contain;
+}
+
+.avatarLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+
+  &:hover {
+    transform: scale(1.05);
   }
 }
