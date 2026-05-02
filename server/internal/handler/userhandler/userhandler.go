@@ -1,13 +1,16 @@
 package userhandler
 
 import (
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/nikitinvitya/messenger/internal/dto"
-	"github.com/nikitinvitya/messenger/internal/handler/middleware"
-	handler "github.com/nikitinvitya/messenger/internal/handler/response"
-	"github.com/nikitinvitya/messenger/internal/service/userservice"
 	"net/http"
 	"strconv"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/nikitinvitya/messenger/internal/dto"
+	"github.com/nikitinvitya/messenger/internal/handler/helper"
+	"github.com/nikitinvitya/messenger/internal/handler/middleware"
+	handler "github.com/nikitinvitya/messenger/internal/handler/response"
+	"github.com/nikitinvitya/messenger/internal/model"
+	"github.com/nikitinvitya/messenger/internal/service/userservice"
 )
 
 type UserHandler struct {
@@ -75,10 +78,48 @@ func (h *UserHandler) SearchUsersByUsername(w http.ResponseWriter, r *http.Reque
 	response := make([]dto.UserSearchResponse, 0, len(users))
 	for _, user := range users {
 		response = append(response, dto.UserSearchResponse{
-			ID:       user.ID,
-			Username: user.Username,
+			ID:        user.ID,
+			Username:  user.Username,
+			AvatarURL: user.AvatarURL,
+			Bio:       user.Bio,
 		})
 	}
 
 	handler.SuccessResponse(w, http.StatusOK, response)
+}
+
+func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userId, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to get claims subject", nil)
+		return
+	}
+
+	var requestBody struct {
+		Username  string  `json:"username" validate:"required,min=3,max=32"`
+		Bio       *string `json:"bio"`
+		AvatarURL *string `json:"avatarURL"`
+	}
+
+	if !helper.ValidateRequest(w, r, &requestBody) {
+		return
+	}
+
+	var updatedUser *model.User
+	updatedUser, err = h.service.UpdateProfile(r.Context(), userId, requestBody.Username, requestBody.Bio, requestBody.AvatarURL)
+	if err != nil {
+		if err.Error() == "username already taken" {
+			handler.ClientErrorResponse(w, http.StatusConflict, "Username is already taken")
+			return
+		}
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to update user", err)
+		return
+	}
+	handler.SuccessResponse(w, http.StatusOK, updatedUser)
 }

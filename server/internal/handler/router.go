@@ -94,6 +94,7 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 			r.Route("/users", func(r chi.Router) {
 				r.Get("/me", h.User.GetMyProfile)
 				r.Get("/search", h.User.SearchUsersByUsername)
+				r.Put("/me", h.User.UpdateProfile)
 			})
 
 			r.Route("/chats", func(r chi.Router) {
