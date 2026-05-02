@@ -9,7 +9,6 @@ import { MessageList } from '@/widgets/message-list';
 import { SendMessageForm } from '@/features/send-message';
 import wallpaper from '@/shared/assets/ChatWallpaper.jpg';
 import { type Chat } from '@/entities/chat';
-import { websocketService } from '@/shared/api/websocket';
 import cls from './ChatWindow.module.scss';
 
 
@@ -20,10 +19,12 @@ interface ChatWindowProps {
   chatID: number;
   chatName: string;
   chatType: Chat["type"];
+  partnerAvatar: string | undefined;
+  partnerUsername: string | undefined;
 }
 
 export const ChatWindow = (props: ChatWindowProps) => {
-  const { chatID, chatName, className, initialMessages, blockStatus, chatType } = props;
+  const { chatID, chatName, className, initialMessages, blockStatus, chatType, partnerUsername, partnerAvatar } = props;
 
   const clearMessages = useMessageStore((state) => state.clearMessages);
 
@@ -46,7 +47,13 @@ export const ChatWindow = (props: ChatWindowProps) => {
 
   return (
     <Box className={classNames(cls.chatWindow)} style={{backgroundImage: `url(${wallpaper.src})`}}>
-      <ChatHeader chatName={chatName} chatID={chatID}/>
+      <ChatHeader
+        chatName={chatName}
+        chatID={chatID}
+        chatType={chatType}
+        partnerAvatar={partnerAvatar}
+        partnerUsername={partnerUsername}
+      />
       <MessageList
         chatType={chatType}
         initialMessages={initialMessages} />

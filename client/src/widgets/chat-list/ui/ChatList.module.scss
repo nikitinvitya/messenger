@@ -1,7 +1,7 @@
 .chatList {
   display: flex;
   flex-direction: column;
-  min-width: 100vw;
+  width: 100%;
   height: calc(100vh - var(--navbar-height));
   overflow-y: scroll;
   gap: 0;
