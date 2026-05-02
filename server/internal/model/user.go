@@ -8,4 +8,6 @@ type User struct {
 	PasswordHash string    `json:"-"`
 	Username     string    `json:"username"`
 	CreatedAt    time.Time `json:"createdAt"`
+	Bio          *string   `json:"bio"`
+	AvatarURL    *string   `json:"avatarURL"`
 }
