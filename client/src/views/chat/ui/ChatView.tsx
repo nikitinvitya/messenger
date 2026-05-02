@@ -21,12 +21,17 @@ export async function ChatView({ chatID }: ChatViewProps) {
     ]);
 
     let chatName = 'Chat';
+    let partnerAvatar = undefined;
+    let partnerUsername = undefined;
+
     if (chat.type === 'group' && chat.name) {
       chatName = chat.name;
     } else if (chat.type === 'private') {
       const partner = chat.participants.find(p => p.id !== currentUser.id);
       if (partner) {
         chatName = partner.username;
+        partnerAvatar = partner.avatarURL;
+        partnerUsername = partner.username;
       } else {
         chatName = "Saved Messages";
       }
@@ -40,6 +45,8 @@ export async function ChatView({ chatID }: ChatViewProps) {
           chatID={chatID}
           chatName={chatName}
           chatType={chat.type}
+          partnerUsername={partnerUsername}
+          partnerAvatar={partnerAvatar}
         />
         <ForwardModal />
       </Box>

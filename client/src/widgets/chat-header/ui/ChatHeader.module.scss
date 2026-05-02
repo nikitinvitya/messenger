@@ -1,28 +1,46 @@
 .chatHeader {
-  min-width: 100vw;
+  width: 100%;
   min-height: var(--navbar-height);
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
-  gap: 20px;
+  grid-template-columns: 1fr 8fr 1fr;
   align-items: center;
-  padding: 0 5px;
+  padding: 0 10px;
   background-color: var(--header-color);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 
-  .toChatsBtn {
-    border-radius: 50%;
-    background-color: inherit;
+  .leftSection {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .centerSection {
+    display: flex;
+    justify-content: center;
+    justify-self: start;
+    min-width: 0;
+  }
+
+  .profileLink {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    max-width: 100%;
+    color: black;
   }
 
   .chatName {
-    text-align: left;
+    font: var(--font-m);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font: var(--font-m);
   }
 
   .menuWrapper {
-    justify-self: end;
-    padding-right: 10px;
+    display: flex;
+    justify-content: flex-end;
   }
 }
