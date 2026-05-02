@@ -9,7 +9,8 @@ import (
 )
 
 type UserService interface {
-	GetProfile(ctx context.Context, id int) (*model.User, error)
+	GetProfileByID(ctx context.Context, id int) (*model.User, error)
+	GetProfileByName(ctx context.Context, username string) (*model.User, error)
 	SearchUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error)
 	UpdateProfile(ctx context.Context, userID int, username string, bio *string, avatarURL *string) (*model.User, error)
 }
@@ -24,8 +25,12 @@ func NewUserService(repo userrepository.UserRepository) UserService {
 	}
 }
 
-func (s *userService) GetProfile(ctx context.Context, id int) (*model.User, error) {
+func (s *userService) GetProfileByID(ctx context.Context, id int) (*model.User, error) {
 	return s.repo.GetUserByID(ctx, id)
+}
+
+func (s *userService) GetProfileByName(ctx context.Context, username string) (*model.User, error) {
+	return s.repo.GetUserByName(ctx, username)
 }
 
 func (s *userService) SearchUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error) {

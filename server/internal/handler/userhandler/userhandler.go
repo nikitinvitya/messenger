@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/handler/helper"
@@ -36,7 +37,7 @@ func (h *UserHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.GetProfile(r.Context(), userId)
+	user, err := h.service.GetProfileByID(r.Context(), userId)
 	if err != nil {
 		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to get user", err)
 		return
@@ -122,4 +123,21 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	handler.SuccessResponse(w, http.StatusOK, updatedUser)
+}
+
+func (h *UserHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
+	username := chi.URLParam(r, "username")
+
+	user, err := h.service.GetProfileByName(r.Context(), username)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Error fetching user", err)
+		return
+	}
+
+	if user == nil {
+		handler.ClientErrorResponse(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	handler.SuccessResponse(w, http.StatusOK, user)
 }
