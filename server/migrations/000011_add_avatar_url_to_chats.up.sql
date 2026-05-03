@@ -1,0 +1,1 @@
+ALTER TABLE chats ADD COLUMN avatar_url TEXT DEFAULT NULL;
