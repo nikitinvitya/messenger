@@ -1,6 +1,7 @@
 package websockethandler
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	gorillaWebsocket "github.com/gorilla/websocket"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	handler "github.com/nikitinvitya/messenger/internal/handler/response"
+	"github.com/nikitinvitya/messenger/internal/service/chatservice"
 	"github.com/nikitinvitya/messenger/internal/websocket"
 )
 
@@ -21,12 +23,14 @@ var upgrader = gorillaWebsocket.Upgrader{
 }
 
 type WebsocketHandler struct {
-	hub *websocket.Hub
+	hub         *websocket.Hub
+	chatService chatservice.ChatService
 }
 
-func NewWebsocketHandler(hub *websocket.Hub) *WebsocketHandler {
+func NewWebsocketHandler(hub *websocket.Hub, chatService chatservice.ChatService) *WebsocketHandler {
 	return &WebsocketHandler{
-		hub: hub,
+		hub:         hub,
+		chatService: chatService,
 	}
 }
 
@@ -62,4 +66,18 @@ func (h *WebsocketHandler) ServeWs(w http.ResponseWriter, r *http.Request) {
 	go client.ReadPump()
 
 	slog.Info("websocket connected", "userID", userID)
+}
+
+func (h *WebsocketHandler) HandlePresence() {
+	for update := range h.hub.StatusUpdates {
+		contactIDs, err := h.chatService.GetContactIDs(context.Background(), update.UserID)
+		if err != nil {
+			continue
+		}
+
+		h.hub.SendToUsers(websocket.EventUserStatus, map[string]interface{}{
+			"userId": update.UserID,
+			"online": update.Online,
+		}, contactIDs)
+	}
 }
