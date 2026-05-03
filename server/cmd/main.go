@@ -81,7 +81,7 @@ func main() {
 	blocklistRepo := blocklistrepository.NewBlocklistRepository(db)
 
 	authService := authservice.NewAuthService(userRepo, jwtSecret)
-	userService := userservice.NewUserService(userRepo)
+	userService := userservice.NewUserService(userRepo, hub)
 	chatService := chatservice.NewChatService(chatRepo, hub)
 	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo)
 	messageService := messageservice.NewMessageService(chatRepo, messageRepo, userRepo, hub, blocklistService)
@@ -90,10 +90,11 @@ func main() {
 	userHandler := userhandler.NewUserHandler(userService)
 	chatHandler := chathandler.NewChatHandler(chatService)
 	messageHandler := messagehandler.NewMessageHandler(messageService)
-	websocketHandler := websockethandler.NewWebsocketHandler(hub)
+	websocketHandler := websockethandler.NewWebsocketHandler(hub, chatService)
 	blocklistHandler := blocklisthandler.NewBlocklistHandler(blocklistService)
-	mediaH := mediahandler.NewMediaHandler(uploadDir)
+	mediaHandler := mediahandler.NewMediaHandler(uploadDir)
 
+	go websocketHandler.HandlePresence()
 	apiHandlersDeps := handler.APIHandlersDeps{
 		Auth:      authHandler,
 		User:      userHandler,
@@ -102,7 +103,7 @@ func main() {
 		Websocket: websocketHandler,
 		Blocklist: blocklistHandler,
 		JwtSecret: jwtSecret,
-		Media:     mediaH,
+		Media:     mediaHandler,
 	}
 
 	apiHandlers := handler.NewAPIHandlers(apiHandlersDeps)

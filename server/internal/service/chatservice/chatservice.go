@@ -26,6 +26,7 @@ type ChatService interface {
 	LeaveChat(ctx context.Context, userID int, chatID int) error
 	UpdateChat(ctx context.Context, userID, chatID int, name *string, avatarURL *string) (*dto.ChatResponse, error)
 	GetChatFullInfo(ctx context.Context, userID, chatID int) (*dto.ChatResponse, error)
+	GetContactIDs(ctx context.Context, userID int) ([]int, error)
 }
 
 type chatService struct {
@@ -251,4 +252,8 @@ func (s *chatService) GetChatFullInfo(ctx context.Context, userID, chatID int) (
 		CreatedAt:    chat.CreatedAt,
 		Participants: participants,
 	}, nil
+}
+
+func (s *chatService) GetContactIDs(ctx context.Context, userID int) ([]int, error) {
+	return s.repo.GetContactIDs(ctx, userID)
 }

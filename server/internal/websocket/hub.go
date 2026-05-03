@@ -2,7 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
-	"log/slog"
+	"sync"
 )
 
 type EventType string
@@ -15,6 +15,7 @@ const (
 	EventChatCreated    EventType = "chat_created"
 	EventChatUpdated    EventType = "chat_updated"
 	EventChatDeleted    EventType = "chat_deleted"
+	EventUserStatus     EventType = "user_status"
 )
 
 type Event struct {
@@ -27,27 +28,41 @@ type BroadcastMessage struct {
 	TargetUserIDs []int
 }
 
+type StatusUpdate struct {
+	UserID int
+	Online bool
+}
+
 type Hub struct {
-	clients    map[int]map[*Client]bool
-	Broadcast  chan BroadcastMessage
-	Register   chan *Client
-	Unregister chan *Client
+	mu            sync.RWMutex
+	clients       map[int]map[*Client]bool
+	Broadcast     chan BroadcastMessage
+	Register      chan *Client
+	Unregister    chan *Client
+	StatusUpdates chan StatusUpdate
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		clients:    make(map[int]map[*Client]bool),
-		Broadcast:  make(chan BroadcastMessage),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
+		clients:       make(map[int]map[*Client]bool),
+		Broadcast:     make(chan BroadcastMessage),
+		Register:      make(chan *Client),
+		Unregister:    make(chan *Client),
+		StatusUpdates: make(chan StatusUpdate, 100),
 	}
+}
+
+func (h *Hub) IsUserOnline(userID int) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	_, online := h.clients[userID]
+	return online
 }
 
 func (h *Hub) SendToUsers(eventType EventType, payload interface{}, userIDs []int) {
 	if len(userIDs) == 0 {
 		return
 	}
-
 	h.Broadcast <- BroadcastMessage{
 		Event: Event{
 			Type:    eventType,
@@ -61,31 +76,44 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
+			h.mu.Lock()
+			isFirst := false
 			if h.clients[client.UserID] == nil {
 				h.clients[client.UserID] = make(map[*Client]bool)
+				isFirst = true
 			}
 			h.clients[client.UserID][client] = true
-			slog.Info("client registered globally", "userID", client.UserID)
+			h.mu.Unlock()
+
+			if isFirst {
+				h.StatusUpdates <- StatusUpdate{UserID: client.UserID, Online: true}
+			}
 
 		case client := <-h.Unregister:
+			h.mu.Lock()
+			isLast := false
 			if userClients, ok := h.clients[client.UserID]; ok {
 				if _, ok := userClients[client]; ok {
 					delete(userClients, client)
 					close(client.Send)
 					if len(userClients) == 0 {
 						delete(h.clients, client.UserID)
+						isLast = true
 					}
 				}
 			}
-			slog.Info("client unregistered", "userID", client.UserID)
+			h.mu.Unlock()
+
+			if isLast {
+				h.StatusUpdates <- StatusUpdate{UserID: client.UserID, Online: false}
+			}
 
 		case bMsg := <-h.Broadcast:
 			messageJSON, err := json.Marshal(bMsg.Event)
 			if err != nil {
-				slog.Error("failed to marshal message", "error", err)
 				continue
 			}
-
+			h.mu.RLock()
 			for _, userID := range bMsg.TargetUserIDs {
 				if userClients, ok := h.clients[userID]; ok {
 					for client := range userClients {
@@ -93,11 +121,11 @@ func (h *Hub) Run() {
 						case client.Send <- messageJSON:
 						default:
 							close(client.Send)
-							delete(userClients, client)
 						}
 					}
 				}
 			}
+			h.mu.RUnlock()
 		}
 	}
 }
