@@ -24,6 +24,8 @@ type ChatService interface {
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 	GetChatByID(ctx context.Context, userID int, chatID int) (*dto.ChatResponse, error)
 	LeaveChat(ctx context.Context, userID int, chatID int) error
+	UpdateChat(ctx context.Context, userID, chatID int, name *string, avatarURL *string) (*dto.ChatResponse, error)
+	GetChatFullInfo(ctx context.Context, userID, chatID int) (*dto.ChatResponse, error)
 }
 
 type chatService struct {
@@ -139,6 +141,7 @@ func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (
 	result.Type = chat.Type
 	result.CreatedAt = chat.CreatedAt
 	result.Participants = participants
+	result.AvatarURL = chat.AvatarURL
 
 	return &result, nil
 }
@@ -193,4 +196,59 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 	}
 
 	return nil
+}
+
+func (s *chatService) UpdateChat(ctx context.Context, userID, chatID int, name *string, avatarURL *string) (*dto.ChatResponse, error) {
+	isMember, err := s.repo.IsUserInChat(ctx, userID, chatID)
+	if err != nil || !isMember {
+		return nil, errors.New("access denied")
+	}
+
+	chat, err := s.repo.GetChatByID(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	if chat.Type != "group" {
+		return nil, errors.New("cannot update private chat info")
+	}
+
+	if err := s.repo.UpdateChat(ctx, chatID, name, avatarURL); err != nil {
+		return nil, err
+	}
+
+	updatedChatDTO, err := s.GetChatByID(ctx, userID, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	participantIDs, _ := s.repo.ListChatParticipantsID(ctx, chatID)
+	s.hub.SendToUsers(websocket.EventChatUpdated, updatedChatDTO, participantIDs)
+
+	return updatedChatDTO, nil
+}
+
+func (s *chatService) GetChatFullInfo(ctx context.Context, userID, chatID int) (*dto.ChatResponse, error) {
+	isMember, err := s.repo.IsUserInChat(ctx, userID, chatID)
+	if err != nil || !isMember {
+		return nil, messageservice.ErrAccessDenied
+	}
+
+	chat, err := s.repo.GetChatByID(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	participants, err := s.repo.ListChatParticipants(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.ChatResponse{
+		ID:           chat.ID,
+		Name:         chat.Name,
+		Type:         chat.Type,
+		AvatarURL:    chat.AvatarURL,
+		CreatedAt:    chat.CreatedAt,
+		Participants: participants,
+	}, nil
 }
