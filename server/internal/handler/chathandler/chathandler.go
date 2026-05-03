@@ -153,3 +153,72 @@ func (h *ChatHandler) LeaveChat(w http.ResponseWriter, r *http.Request) {
 
 	handler.SuccessResponse(w, http.StatusNoContent, nil)
 }
+
+func (h *ChatHandler) GetChatInfo(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Invalid user ID in token", err)
+		return
+	}
+
+	chatID, err := strconv.Atoi(chi.URLParam(r, "chatID"))
+	if err != nil {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, "Invalid chat ID in URL")
+		return
+	}
+
+	info, err := h.chatService.GetChatFullInfo(r.Context(), userID, chatID)
+	if err != nil {
+		if errors.Is(err, messageservice.ErrAccessDenied) {
+			handler.ClientErrorResponse(w, http.StatusForbidden, "Access denied")
+			return
+		}
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to get chat info", err)
+		return
+	}
+
+	handler.SuccessResponse(w, http.StatusOK, info)
+}
+
+func (h *ChatHandler) UpdateChat(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Invalid user ID in token", err)
+		return
+	}
+
+	chatID, err := strconv.Atoi(chi.URLParam(r, "chatID"))
+	if err != nil {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, "Invalid chat ID in URL")
+		return
+	}
+
+	var requestBody struct {
+		Name      *string `json:"name"`
+		AvatarURL *string `json:"avatarURL"`
+	}
+
+	if !helper.ValidateRequest(w, r, &requestBody) {
+		return
+	}
+
+	updatedChat, err := h.chatService.UpdateChat(r.Context(), userID, chatID, requestBody.Name, requestBody.AvatarURL)
+	if err != nil {
+		handler.ClientErrorResponse(w, http.StatusForbidden, err.Error())
+		return
+	}
+
+	handler.SuccessResponse(w, http.StatusOK, updatedChat)
+}

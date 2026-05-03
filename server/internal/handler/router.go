@@ -104,6 +104,8 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 				r.Get("/{chatID}", h.Chat.GetChatByID)
 				r.Get("/{chatID}/messages", h.Message.ListMessagesInChat)
 				r.Post("/{chatID}/messages", h.Message.CreateMessage)
+				r.Get("/{chatID}/info", h.Chat.GetChatInfo)
+				r.Put("/{chatID}", h.Chat.UpdateChat)
 				r.Delete("/leave/{chatID}", h.Chat.LeaveChat)
 			})
 
