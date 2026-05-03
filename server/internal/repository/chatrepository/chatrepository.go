@@ -21,6 +21,7 @@ type ChatRepository interface {
 	LeaveChat(ctx context.Context, chatID int, userID int) error
 	CountChatParticipants(ctx context.Context, chatID int) (int, error)
 	DeleteChat(ctx context.Context, chatID int) error
+	UpdateChat(ctx context.Context, chatID int, name *string, avatarURL *string) error
 }
 
 type chatRepository struct {
@@ -72,6 +73,7 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 			c.name, 
 			c.type, 
 			c.created_at,
+			c.avatar_url,
 			last_msg.id as last_message_id,
 			last_msg.content as last_message_content,
 			last_msg.created_at as last_message_created_at
@@ -104,17 +106,23 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 		var lastMessageID sql.NullInt64
 		var lastMessageContent sql.NullString
 		var lastMessageCreatedAt sql.NullTime
+		var avatarURL sql.NullString
 
 		if err = rows.Scan(
 			&chat.ID,
 			&chat.Name,
 			&chat.Type,
 			&chat.CreatedAt,
+			&avatarURL,
 			&lastMessageID,
 			&lastMessageContent,
 			&lastMessageCreatedAt,
 		); err != nil {
 			return chats, err
+		}
+
+		if avatarURL.Valid {
+			chat.AvatarURL = &avatarURL.String
 		}
 
 		if lastMessageID.Valid {
@@ -127,10 +135,6 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 		chats = append(chats, &chat)
 	}
 
-	if err = rows.Err(); err != nil {
-		return chats, err
-	}
-
 	return chats, nil
 }
 
@@ -141,13 +145,11 @@ func (r *chatRepository) IsUserInChat(ctx context.Context, userID int, chatID in
 						WHERE user_id = $1 AND chat_id = $2)`
 
 	var exists bool
-
 	if err := r.db.QueryRowContext(ctx, sqlReq, userID, chatID).Scan(&exists); err != nil {
 		return false, fmt.Errorf("failed to checkout participants: %w", err)
 	}
 
 	return exists, nil
-
 }
 
 func (r *chatRepository) FindPrivateChatByParticipants(ctx context.Context, userID1 int, userID2 int) (int, error) {
@@ -167,15 +169,20 @@ func (r *chatRepository) FindPrivateChatByParticipants(ctx context.Context, user
 }
 
 func (r *chatRepository) GetChatByID(ctx context.Context, chatID int) (*model.Chat, error) {
-	sqlReq := `SELECT id, name, type, created_at from chats WHERE id = $1`
+	sqlReq := `SELECT id, name, type, created_at, avatar_url from chats WHERE id = $1`
 
 	var chat model.Chat
-	if err := r.db.QueryRowContext(ctx, sqlReq, chatID).Scan(&chat.ID, &chat.Name, &chat.Type, &chat.CreatedAt); err != nil {
+	if err := r.db.QueryRowContext(ctx, sqlReq, chatID).Scan(
+		&chat.ID,
+		&chat.Name,
+		&chat.Type,
+		&chat.CreatedAt,
+		&chat.AvatarURL,
+	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-
-		return nil, err
+		return nil, fmt.Errorf("failed to get chat by id: %w", err)
 	}
 
 	return &chat, nil
@@ -198,15 +205,11 @@ func (r *chatRepository) ListChatParticipantsID(ctx context.Context, chatID int)
 		userIDs = append(userIDs, userID)
 	}
 
-	if err = rows.Err(); err != nil {
-		return userIDs, err
-	}
-
 	return userIDs, nil
 }
 
 func (r *chatRepository) ListChatParticipants(ctx context.Context, chatID int) ([]model.User, error) {
-	sqlReq := `SELECT U.id, U.email, U.username, U.created_at
+	sqlReq := `SELECT U.id, U.email, U.username, U.created_at, U.bio, U.avatar_url
 			   FROM users U
 			   JOIN chat_participants CP ON CP.user_id = U.id
 			   WHERE CP.chat_id = $1`
@@ -220,15 +223,18 @@ func (r *chatRepository) ListChatParticipants(ctx context.Context, chatID int) (
 	result := make([]model.User, 0)
 	for rows.Next() {
 		var user model.User
-		if err = rows.Scan(&user.ID, &user.Email, &user.Username, &user.CreatedAt); err != nil {
+		if err = rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.Username,
+			&user.CreatedAt,
+			&user.Bio,
+			&user.AvatarURL,
+		); err != nil {
 			return result, err
 		}
 
 		result = append(result, user)
-	}
-
-	if err = rows.Err(); err != nil {
-		return result, err
 	}
 
 	return result, nil
@@ -236,36 +242,32 @@ func (r *chatRepository) ListChatParticipants(ctx context.Context, chatID int) (
 
 func (r *chatRepository) LeaveChat(ctx context.Context, chatID int, userID int) error {
 	sqlReq := `DELETE from chat_participants where user_id = $1 and chat_id = $2`
-
 	result, err := r.db.ExecContext(ctx, sqlReq, userID, chatID)
 	if err != nil {
 		return err
 	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
+	rows, _ := result.RowsAffected()
 	if rows == 0 {
 		return sql.ErrNoRows
 	}
-
 	return nil
 }
 
 func (r *chatRepository) CountChatParticipants(ctx context.Context, chatID int) (int, error) {
-	sqlReq := `select count(*) from chat_participants where chat_id = $1`
+	sqlReq := `SELECT count(*) FROM chat_participants WHERE chat_id = $1`
 	var count int
 	err := r.db.QueryRowContext(ctx, sqlReq, chatID).Scan(&count)
 	return count, err
 }
 
 func (r *chatRepository) DeleteChat(ctx context.Context, chatID int) error {
-	sqlReq := `delete from chats where id = $1`
+	sqlReq := `DELETE FROM chats WHERE id = $1`
 	_, err := r.db.ExecContext(ctx, sqlReq, chatID)
-	if err != nil {
-		return err
-	}
+	return err
+}
 
-	return nil
+func (r *chatRepository) UpdateChat(ctx context.Context, chatID int, name *string, avatarURL *string) error {
+	sqlReq := `UPDATE chats SET name = $1, avatar_url = $2 WHERE id = $3`
+	_, err := r.db.ExecContext(ctx, sqlReq, name, avatarURL, chatID)
+	return err
 }

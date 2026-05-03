@@ -19,6 +19,7 @@ type ChatResponse struct {
 	CreatedAt    time.Time    `json:"createdAt"`
 	Participants []model.User `json:"participants"`
 	LastMessage  *LastMessage `json:"lastMessage,omitempty"`
+	AvatarURL    *string      `json:"avatarURL"`
 }
 
 type UserLeftPayload struct {
