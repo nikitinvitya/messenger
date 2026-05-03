@@ -22,6 +22,7 @@ type ChatRepository interface {
 	CountChatParticipants(ctx context.Context, chatID int) (int, error)
 	DeleteChat(ctx context.Context, chatID int) error
 	UpdateChat(ctx context.Context, chatID int, name *string, avatarURL *string) error
+	GetContactIDs(ctx context.Context, userID int) ([]int, error)
 }
 
 type chatRepository struct {
@@ -270,4 +271,28 @@ func (r *chatRepository) UpdateChat(ctx context.Context, chatID int, name *strin
 	sqlReq := `UPDATE chats SET name = $1, avatar_url = $2 WHERE id = $3`
 	_, err := r.db.ExecContext(ctx, sqlReq, name, avatarURL, chatID)
 	return err
+}
+
+func (r *chatRepository) GetContactIDs(ctx context.Context, userID int) ([]int, error) {
+	sqlReq := `
+		SELECT DISTINCT user_id 
+		FROM chat_participants 
+		WHERE chat_id IN (SELECT chat_id FROM chat_participants WHERE user_id = $1)
+		AND user_id != $1`
+
+	rows, err := r.db.QueryContext(ctx, sqlReq, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }

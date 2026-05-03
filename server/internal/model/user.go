@@ -10,4 +10,5 @@ type User struct {
 	CreatedAt    time.Time `json:"createdAt"`
 	Bio          *string   `json:"bio"`
 	AvatarURL    *string   `json:"avatarURL"`
+	IsOnline     bool      `json:"isOnline"`
 }
