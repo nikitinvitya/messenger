@@ -2,14 +2,16 @@ package authhandler
 
 import (
 	"errors"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/nikitinvitya/messenger/internal/handler/helper"
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	"github.com/nikitinvitya/messenger/internal/handler/response"
 	"github.com/nikitinvitya/messenger/internal/service/authservice"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 const (
@@ -119,4 +121,41 @@ func (h *AuthHandler) GetWSTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handler.SuccessResponse(w, http.StatusOK, map[string]string{"ticket": ticket})
+}
+
+func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, "Verification token is required")
+		return
+	}
+
+	if err := h.service.VerifyEmail(r.Context(), token); err != nil {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:3000"
+	}
+
+	http.Redirect(w, r, frontendURL+"/sign-in?verified=true", http.StatusSeeOther)
+}
+
+func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Email string `json:"email" validate:"required,email"`
+	}
+
+	if !helper.ValidateRequest(w, r, &requestBody) {
+		return
+	}
+
+	if err := h.service.ResendVerification(r.Context(), requestBody.Email); err != nil {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	handler.SuccessResponse(w, http.StatusOK, map[string]string{"message": "Verification email resent"})
 }
