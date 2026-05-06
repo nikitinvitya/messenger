@@ -5,4 +5,5 @@ type UserSearchResponse struct {
 	Username  string  `json:"username"`
 	Bio       *string `json:"bio"`
 	AvatarURL *string `json:"avatarURL"`
+	IsOnline  bool    `json:"isOnline"`
 }

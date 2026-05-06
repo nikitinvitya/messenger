@@ -107,6 +107,10 @@ func (s *chatService) ListUserChats(ctx context.Context, userID int) ([]*dto.Cha
 			return chats, err
 		}
 
+		for i := range participants {
+			participants[i].IsOnline = s.hub.IsUserOnline(participants[i].ID)
+		}
+
 		chat.Participants = participants
 	}
 
@@ -126,7 +130,6 @@ func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (
 		return nil, messageservice.ErrAccessDenied
 	}
 
-	var result dto.ChatResponse
 	chat, err := s.repo.GetChatByID(ctx, chatID)
 	if err != nil {
 		return nil, err
@@ -137,6 +140,11 @@ func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (
 		return nil, err
 	}
 
+	for i := range participants {
+		participants[i].IsOnline = s.hub.IsUserOnline(participants[i].ID)
+	}
+
+	var result dto.ChatResponse
 	result.ID = chat.ID
 	result.Name = chat.Name
 	result.Type = chat.Type
@@ -170,7 +178,7 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 			return err
 		}
 
-		s.hub.SendToUsers(websocket.EventChatDeleted, map[string]int{"chatID": chatID}, participantIDs)
+		s.hub.SendToUsers(websocket.EventChatDeleted, map[string]int{"chatId": chatID}, participantIDs)
 		return nil
 	}
 
@@ -229,29 +237,7 @@ func (s *chatService) UpdateChat(ctx context.Context, userID, chatID int, name *
 }
 
 func (s *chatService) GetChatFullInfo(ctx context.Context, userID, chatID int) (*dto.ChatResponse, error) {
-	isMember, err := s.repo.IsUserInChat(ctx, userID, chatID)
-	if err != nil || !isMember {
-		return nil, messageservice.ErrAccessDenied
-	}
-
-	chat, err := s.repo.GetChatByID(ctx, chatID)
-	if err != nil {
-		return nil, err
-	}
-
-	participants, err := s.repo.ListChatParticipants(ctx, chatID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dto.ChatResponse{
-		ID:           chat.ID,
-		Name:         chat.Name,
-		Type:         chat.Type,
-		AvatarURL:    chat.AvatarURL,
-		CreatedAt:    chat.CreatedAt,
-		Participants: participants,
-	}, nil
+	return s.GetChatByID(ctx, userID, chatID)
 }
 
 func (s *chatService) GetContactIDs(ctx context.Context, userID int) ([]int, error) {

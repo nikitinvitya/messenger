@@ -47,7 +47,16 @@ func (s *userService) GetProfileByName(ctx context.Context, username string) (*m
 }
 
 func (s *userService) SearchUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error) {
-	return s.repo.FindUsersByUsername(ctx, userID, username)
+	users, err := s.repo.FindUsersByUsername(ctx, userID, username)
+	if err != nil {
+		return nil, err
+	}
+	
+	for i := range users {
+		users[i].IsOnline = s.hub.IsUserOnline(users[i].ID)
+	}
+
+	return users, nil
 }
 
 func (s *userService) UpdateProfile(ctx context.Context, userID int, username string, bio *string, avatarURL *string) (*model.User, error) {

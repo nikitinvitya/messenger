@@ -83,6 +83,7 @@ func (h *UserHandler) SearchUsersByUsername(w http.ResponseWriter, r *http.Reque
 			Username:  user.Username,
 			AvatarURL: user.AvatarURL,
 			Bio:       user.Bio,
+			IsOnline:  user.IsOnline,
 		})
 	}
 
