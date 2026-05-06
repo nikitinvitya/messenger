@@ -4,7 +4,7 @@ import { useChatStore } from '@/entities/chat/model/store';
 import { useUserStore } from '@/entities/user/model/store';
 import {WS_BASE_URL} from "@/shared/constants/api"
 
-type EventType = 'create_message' | 'update_message' | 'delete_message' | 'user_left_chat' | 'chat_created' | 'chat_deleted';
+type EventType = 'create_message' | 'update_message' | 'delete_message' | 'user_left_chat' | 'chat_created' | 'chat_deleted' | 'user_status';
 
 interface WebSocketEvent {
   type: EventType;
@@ -99,6 +99,18 @@ class WebSocketService {
               }
             }
             break;
+
+          case 'user_status': {
+            const { userId, online } = payload;
+
+            useChatStore.getState().updateParticipantStatus(userId, online);
+
+            const currentUser = useUserStore.getState().user;
+            if (currentUser?.id === userId) {
+              useUserStore.getState().updateStatus(online);
+            }
+            break;
+          }
 
           default:
             console.warn('Unknown WebSocket event type:', type);
