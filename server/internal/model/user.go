@@ -11,4 +11,5 @@ type User struct {
 	Bio          *string   `json:"bio"`
 	AvatarURL    *string   `json:"avatarURL"`
 	IsOnline     bool      `json:"isOnline"`
+	IsVerified   bool      `json:"isVerified"`
 }

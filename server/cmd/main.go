@@ -33,6 +33,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"github.com/nikitinvitya/messenger/internal/service/userservice"
 	"github.com/nikitinvitya/messenger/internal/websocket"
+	"github.com/nikitinvitya/messenger/pkg/email"
 )
 
 func main() {
@@ -80,7 +81,8 @@ func main() {
 	messageRepo := messagerepository.NewMessageRepository(db)
 	blocklistRepo := blocklistrepository.NewBlocklistRepository(db)
 
-	authService := authservice.NewAuthService(userRepo, jwtSecret)
+	mailService := email.NewMailer()
+	authService := authservice.NewAuthService(userRepo, jwtSecret, mailService)
 	userService := userservice.NewUserService(userRepo, hub)
 	chatService := chatservice.NewChatService(chatRepo, hub)
 	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo)
