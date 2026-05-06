@@ -42,16 +42,20 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.Register(r.Context(), requestBody.Email, requestBody.Username, requestBody.Password); err != nil {
 		switch {
 		case errors.Is(err, authservice.UsernameAlreadyExists):
-			handler.ClientErrorResponse(w, http.StatusConflict, "Username already exists")
+			handler.ErrorCodeResponse(w, http.StatusConflict, "Username already exists", "USERNAME_TAKEN")
+			return
+
 		case errors.Is(err, authservice.EmailAlreadyExists):
-			handler.ClientErrorResponse(w, http.StatusConflict, "Email already exists")
+			handler.ErrorCodeResponse(w, http.StatusConflict, "Email already exists", "EMAIL_TAKEN")
+			return
+
 		default:
 			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to create user", err)
+			return
 		}
-		return
 	}
 
-	successPayload := map[string]string{"message": "User created successfully"}
+	successPayload := map[string]string{"message": "User created successfully. Please verify your email."}
 	handler.SuccessResponse(w, http.StatusCreated, successPayload)
 }
 
@@ -67,12 +71,19 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	token, expirationTime, err := h.service.Login(r.Context(), requestBody.Identifier, requestBody.Password)
 	if err != nil {
-		if errors.Is(err, authservice.InvalidCredentials) {
-			handler.ClientErrorResponse(w, http.StatusUnauthorized, "Invalid credentials")
-		} else {
+		switch {
+		case errors.Is(err, authservice.EmailNotVerified):
+			handler.ErrorCodeResponse(w, http.StatusForbidden, "Please verify your email first", "EMAIL_NOT_VERIFIED")
+			return
+
+		case errors.Is(err, authservice.InvalidCredentials):
+			handler.ErrorCodeResponse(w, http.StatusUnauthorized, "Invalid username or password", "INVALID_CREDENTIALS")
+			return
+
+		default:
 			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Login failed", err)
+			return
 		}
-		return
 	}
 
 	http.SetCookie(w, &http.Cookie{

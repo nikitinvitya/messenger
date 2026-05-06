@@ -117,12 +117,18 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 		}
 	}
 
+	msgType := "text"
+	if imageURL != nil && *imageURL != "" {
+		msgType = "image"
+	}
+
 	message := &model.Message{
 		SenderID:         senderID,
 		ChatID:           chatID,
 		Content:          content,
 		ReplyToMessageID: replyToMessageID,
 		ImageURL:         imageURL,
+		Type:             msgType,
 	}
 
 	messageID, err := s.messageRepo.CreateMessage(ctx, message)
@@ -150,7 +156,8 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 		ReplyToMessageID:    finalMessage.ReplyToMessageID,
 		ForwardedFromUserID: finalMessage.ForwardedFromUserID,
 		ForwardedFromChatID: finalMessage.ForwardedFromChatID,
-		ImageURL:            imageURL,
+		ImageURL:            finalMessage.ImageURL,
+		Type:                finalMessage.Type,
 	}
 	if sender != nil {
 		messagePayload.Sender = &dto.SenderInfo{
@@ -273,6 +280,7 @@ func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID in
 		ForwardedFromUserID: updatedMessage.ForwardedFromUserID,
 		ForwardedFromChatID: updatedMessage.ForwardedFromChatID,
 		ImageURL:            updatedMessage.ImageURL,
+		Type:                updatedMessage.Type,
 	}
 	if sender != nil {
 		messagePayload.Sender = &dto.SenderInfo{
@@ -357,6 +365,7 @@ func (s *messageService) ForwardMessage(ctx context.Context, forwarderID, destin
 			ForwardedFromChatID: &message.ChatID,
 			Content:             message.Content,
 			ImageURL:            message.ImageURL,
+			Type:                message.Type,
 			ReplyToMessageID:    nil,
 		}
 
@@ -379,6 +388,7 @@ func (s *messageService) ForwardMessage(ctx context.Context, forwarderID, destin
 			ForwardedFromUserID: finalMessage.ForwardedFromUserID,
 			ForwardedFromChatID: finalMessage.ForwardedFromChatID,
 			ImageURL:            finalMessage.ImageURL,
+			Type:                message.Type,
 		}
 		if sender != nil {
 			messagePayload.Sender = &dto.SenderInfo{
