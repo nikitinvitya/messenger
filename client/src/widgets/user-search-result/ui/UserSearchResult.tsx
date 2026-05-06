@@ -6,6 +6,7 @@ import {Box, Text} from "@mantine/core";
 import {createChat} from "@/entities/chat/api/createChat";
 import {useRouter} from "next/navigation";
 import {AppRoutes} from "@/shared/config/routes";
+import {AppAvatar} from "@/shared/ui/AppAvatar/ui/AppAvatar";
 
 interface UserSearchResultProps {
   className?: string;
@@ -40,7 +41,13 @@ export const UserSearchResult = ({ users }: UserSearchResultProps) => {
             onClick={(e) => handleUserSelect(e, user)}
             className={cls.userSearchResultItem}
           >
-            {user.username}
+            <AppAvatar
+              src={user.avatarURL}
+              name={user.username}
+              isOnline={user.isOnline}
+              size={40}
+            />
+            <Text>{user.username}</Text>
           </Box>
         ))
       ) : (
