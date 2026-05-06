@@ -18,6 +18,7 @@ type MessageResponse struct {
 	ForwardedFromChatID *int        `json:"forwardedFromChatId,omitempty"`
 	Sender              *SenderInfo `json:"sender"`
 	ImageURL            *string     `json:"imageURL,omitempty"`
+	Type                string      `json:"type"`
 }
 
 func (m *MessageResponse) GetChatID() int {
