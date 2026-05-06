@@ -27,6 +27,7 @@ type ChatService interface {
 	UpdateChat(ctx context.Context, userID, chatID int, name *string, avatarURL *string) (*dto.ChatResponse, error)
 	GetChatFullInfo(ctx context.Context, userID, chatID int) (*dto.ChatResponse, error)
 	GetContactIDs(ctx context.Context, userID int) ([]int, error)
+	AddParticipant(ctx context.Context, requesterID, chatID, targetUserID int) error
 }
 
 type chatService struct {
@@ -242,4 +243,46 @@ func (s *chatService) GetChatFullInfo(ctx context.Context, userID, chatID int) (
 
 func (s *chatService) GetContactIDs(ctx context.Context, userID int) ([]int, error) {
 	return s.repo.GetContactIDs(ctx, userID)
+}
+
+func (s *chatService) AddParticipant(ctx context.Context, requesterID, chatID, targetUserID int) error {
+	chat, err := s.repo.GetChatByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+	if chat == nil {
+		return errors.New("chat not found")
+	}
+
+	if chat.Type != "group" {
+		return errors.New("cannot add participants to a private chat")
+	}
+
+	isRequesterInChat, err := s.repo.IsUserInChat(ctx, requesterID, chatID)
+	if err != nil {
+		return err
+	}
+	if !isRequesterInChat {
+		return errors.New("access denied: you are not a participant of this group")
+	}
+
+	isTargetInChat, err := s.repo.IsUserInChat(ctx, targetUserID, chatID)
+	if err != nil {
+		return err
+	}
+	if isTargetInChat {
+		return errors.New("user is already a member of this group")
+	}
+
+	if err := s.repo.AddParticipant(ctx, chatID, targetUserID); err != nil {
+		return err
+	}
+
+	updatedChat, _ := s.GetChatByID(ctx, requesterID, chatID)
+	participantIDs, _ := s.repo.ListChatParticipantsID(ctx, chatID)
+
+	s.hub.SendToUsers(websocket.EventChatUpdated, updatedChat, participantIDs)
+	s.hub.SendToUsers(websocket.EventChatCreated, updatedChat, []int{targetUserID})
+
+	return nil
 }

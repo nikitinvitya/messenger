@@ -222,3 +222,25 @@ func (h *ChatHandler) UpdateChat(w http.ResponseWriter, r *http.Request) {
 
 	handler.SuccessResponse(w, http.StatusOK, updatedChat)
 }
+
+func (h *ChatHandler) AddParticipant(w http.ResponseWriter, r *http.Request) {
+	claims := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	userID, _ := strconv.Atoi(claims.Subject)
+	chatID, _ := strconv.Atoi(chi.URLParam(r, "chatID"))
+
+	var requestBody struct {
+		UserID int `json:"userID" validate:"required"`
+	}
+
+	if !helper.ValidateRequest(w, r, &requestBody) {
+		return
+	}
+
+	err := h.chatService.AddParticipant(r.Context(), userID, chatID, requestBody.UserID)
+	if err != nil {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	handler.SuccessResponse(w, http.StatusNoContent, nil)
+}

@@ -23,6 +23,7 @@ type ChatRepository interface {
 	DeleteChat(ctx context.Context, chatID int) error
 	UpdateChat(ctx context.Context, chatID int, name *string, avatarURL *string) error
 	GetContactIDs(ctx context.Context, userID int) ([]int, error)
+	AddParticipant(ctx context.Context, chatID int, userID int) error
 }
 
 type chatRepository struct {
@@ -295,4 +296,10 @@ func (r *chatRepository) GetContactIDs(ctx context.Context, userID int) ([]int, 
 		ids = append(ids, id)
 	}
 	return ids, nil
+}
+
+func (r *chatRepository) AddParticipant(ctx context.Context, chatID int, userID int) error {
+	sqlReq := `INSERT INTO chat_participants (chat_id, user_id) VALUES ($1, $2)`
+	_, err := r.db.ExecContext(ctx, sqlReq, chatID, userID)
+	return err
 }
