@@ -5,9 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/nikitinvitya/messenger/internal/dto"
+	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
+	"github.com/nikitinvitya/messenger/internal/repository/messagerepository"
+	"github.com/nikitinvitya/messenger/internal/repository/userrepository"
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"github.com/nikitinvitya/messenger/internal/websocket"
 )
@@ -31,14 +35,18 @@ type ChatService interface {
 }
 
 type chatService struct {
-	repo chatrepository.ChatRepository
-	hub  *websocket.Hub
+	repo        chatrepository.ChatRepository
+	hub         *websocket.Hub
+	messageRepo messagerepository.MessageRepository
+	userRepo    userrepository.UserRepository
 }
 
-func NewChatService(repo chatrepository.ChatRepository, hub *websocket.Hub) ChatService {
+func NewChatService(repo chatrepository.ChatRepository, hub *websocket.Hub, messageRepo messagerepository.MessageRepository, userRepo userrepository.UserRepository) ChatService {
 	return &chatService{
-		repo: repo,
-		hub:  hub,
+		repo:        repo,
+		hub:         hub,
+		messageRepo: messageRepo,
+		userRepo:    userRepo,
 	}
 }
 
@@ -156,6 +164,39 @@ func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (
 	return &result, nil
 }
 
+func (s *chatService) sendSystemMessage(ctx context.Context, chatID, userID int, text string, targets []int) {
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return
+	}
+
+	msg := &model.Message{
+		ChatID:   chatID,
+		SenderID: userID,
+		Content:  text,
+		Type:     "system",
+	}
+
+	msgID, err := s.messageRepo.CreateMessage(ctx, msg)
+	if err != nil {
+		return
+	}
+
+	payload := &dto.MessageResponse{
+		ID:        msgID,
+		ChatID:    chatID,
+		Content:   text,
+		CreatedAt: time.Now(),
+		Type:      "system",
+		Sender: &dto.SenderInfo{
+			ID:       user.ID,
+			Username: user.Username,
+		},
+	}
+
+	s.hub.SendToUsers(websocket.EventMessageCreated, payload, targets)
+}
+
 func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) error {
 	isParticipant, err := s.repo.IsUserInChat(ctx, userID, chatID)
 	if err != nil {
@@ -174,11 +215,11 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 	if err != nil {
 		return err
 	}
+
 	if chat.Type == "private" {
 		if err := s.repo.DeleteChat(ctx, chatID); err != nil {
 			return err
 		}
-
 		s.hub.SendToUsers(websocket.EventChatDeleted, map[string]int{"chatId": chatID}, participantIDs)
 		return nil
 	}
@@ -191,8 +232,9 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 		ChatID: chatID,
 		UserID: userID,
 	}
-
 	s.hub.SendToUsers(websocket.EventUserLeftChat, leavePayload, participantIDs)
+
+	go s.sendSystemMessage(ctx, chatID, userID, "left the chat", participantIDs)
 
 	participantsCount, err := s.repo.CountChatParticipants(ctx, chatID)
 	if err != nil {
@@ -222,6 +264,13 @@ func (s *chatService) UpdateChat(ctx context.Context, userID, chatID int, name *
 		return nil, errors.New("cannot update private chat info")
 	}
 
+	var systemText string
+	if name != nil && (chat.Name == nil || *name != *chat.Name) {
+		systemText = "changed the group name to " + *name
+	} else if avatarURL != nil && (chat.AvatarURL == nil || *avatarURL != *chat.AvatarURL) {
+		systemText = "updated the group photo"
+	}
+
 	if err := s.repo.UpdateChat(ctx, chatID, name, avatarURL); err != nil {
 		return nil, err
 	}
@@ -234,9 +283,12 @@ func (s *chatService) UpdateChat(ctx context.Context, userID, chatID int, name *
 	participantIDs, _ := s.repo.ListChatParticipantsID(ctx, chatID)
 	s.hub.SendToUsers(websocket.EventChatUpdated, updatedChatDTO, participantIDs)
 
+	if systemText != "" {
+		go s.sendSystemMessage(context.Background(), chatID, userID, systemText, participantIDs)
+	}
+
 	return updatedChatDTO, nil
 }
-
 func (s *chatService) GetChatFullInfo(ctx context.Context, userID, chatID int) (*dto.ChatResponse, error) {
 	return s.GetChatByID(ctx, userID, chatID)
 }
@@ -283,6 +335,8 @@ func (s *chatService) AddParticipant(ctx context.Context, requesterID, chatID, t
 
 	s.hub.SendToUsers(websocket.EventChatUpdated, updatedChat, participantIDs)
 	s.hub.SendToUsers(websocket.EventChatCreated, updatedChat, []int{targetUserID})
+
+	go s.sendSystemMessage(ctx, chatID, targetUserID, "joined the chat", participantIDs)
 
 	return nil
 }

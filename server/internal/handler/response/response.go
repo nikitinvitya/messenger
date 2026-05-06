@@ -8,6 +8,7 @@ import (
 
 type errorResponse struct {
 	Error interface{} `json:"error"`
+	Code  string      `json:"code,omitempty"`
 }
 
 func ServerErrorResponse(w http.ResponseWriter, statusCode int, userMessage string, err error) {
@@ -44,4 +45,13 @@ func ValidationErrorResponse(w http.ResponseWriter, statusCode int, validationEr
 	w.WriteHeader(statusCode)
 
 	json.NewEncoder(w).Encode(errorResponse{Error: validationErrors})
+}
+
+func ErrorCodeResponse(w http.ResponseWriter, statusCode int, message string, code string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(errorResponse{
+		Error: message,
+		Code:  code,
+	})
 }

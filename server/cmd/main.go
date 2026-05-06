@@ -84,7 +84,7 @@ func main() {
 	mailService := email.NewMailer()
 	authService := authservice.NewAuthService(userRepo, jwtSecret, mailService)
 	userService := userservice.NewUserService(userRepo, hub)
-	chatService := chatservice.NewChatService(chatRepo, hub)
+	chatService := chatservice.NewChatService(chatRepo, hub, messageRepo, userRepo)
 	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo)
 	messageService := messageservice.NewMessageService(chatRepo, messageRepo, userRepo, hub, blocklistService)
 

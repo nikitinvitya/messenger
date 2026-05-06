@@ -35,7 +35,8 @@ func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Me
     		    					 reply_to_message_id,
     		    					 forwarded_from_user_id,
     		    					 forwarded_from_chat_id,
-                      				image_url)
+                      				 image_url,
+                      				 type)
 			   VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
 
 	var messageID int
@@ -48,6 +49,7 @@ func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Me
 		message.ForwardedFromUserID,
 		message.ForwardedFromChatID,
 		message.ImageURL,
+		message.Type,
 	).Scan(&messageID)
 	if err != nil {
 		return 0, err
@@ -66,6 +68,7 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
        				  M.forwarded_from_user_id,
        				  M.forwarded_from_chat_id,
        				  M.image_url,
+       				  M.type,
 					  U.id as sender_id, 
 					  U.username as sender_username
 			   FROM messages M
@@ -96,6 +99,7 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 			&message.ForwardedFromUserID,
 			&message.ForwardedFromChatID,
 			&message.ImageURL,
+			&message.Type,
 			&senderInfo.ID,
 			&senderInfo.Username,
 		); err != nil {
@@ -136,7 +140,7 @@ func (r *messageRepository) UpdateMessage(ctx context.Context, messageID int, ne
 }
 
 func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (*model.Message, error) {
-	sqlReq := `SELECT id, sender_id, chat_id, content, created_at, edited_at, reply_to_message_id, forwarded_from_user_id, forwarded_from_chat_id, image_url
+	sqlReq := `SELECT id, sender_id, chat_id, content, created_at, edited_at, reply_to_message_id, forwarded_from_user_id, forwarded_from_chat_id, image_url, type
 			   FROM messages
 			   WHERE id = $1`
 
@@ -152,6 +156,7 @@ func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (
 		&message.ForwardedFromUserID,
 		&message.ForwardedFromChatID,
 		&message.ImageURL,
+		&message.Type,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
