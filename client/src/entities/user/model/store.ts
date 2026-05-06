@@ -12,6 +12,7 @@ interface UserActions {
   fetchUser: () => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
+  updateStatus: (isOnline: boolean) => void;
 }
 
 const defaultUserState: UserState = {
@@ -51,5 +52,9 @@ export const useUserStore = create<UserState & UserActions>((set) => ({
 
   setUser: (u: User) => {
     set({user: u})
-  }
+  },
+
+  updateStatus: (isOnline) => set((state) => ({
+    user: state.user ? { ...state.user, isOnline } : null
+  })),
 }))

@@ -13,6 +13,7 @@ interface ChatActions {
   removeChat: (chatId: number) => void;
   updateChat: (chatId: number, updatedChat: Partial<Chat>) => void;
   setLoading: (isLoading: boolean) => void;
+  updateParticipantStatus: (userId: number, isOnline: boolean) => void;
 }
 
 export const useChatStore = create<ChatState & ChatActions>((set) => ({
@@ -42,4 +43,13 @@ export const useChatStore = create<ChatState & ChatActions>((set) => ({
   }),
 
   setLoading: (isLoading) => set({ isLoading }),
+
+  updateParticipantStatus: (userId, isOnline) => set((state) => ({
+    chats: state.chats.map(chat => ({
+      ...chat,
+      participants: chat.participants?.map(p =>
+        p.id === userId ? { ...p, isOnline } : p
+      )
+    }))
+  })),
 }))
