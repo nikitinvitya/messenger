@@ -17,5 +17,6 @@ export interface Chat {
   name?: string;
   participants: User[],
   lastMessage?: LastMessage;
+  avatarURL?: string;
 }
 

@@ -1,11 +1,14 @@
-import {useRouter} from "next/navigation";
-import {useChatStore} from "@/entities/chat/model/store";
-import {useEffect, useState} from "react";
-import {useDebouncedValue} from "@mantine/hooks";
-import {UserSearchResponse} from "@/entities/user/model/model";
-import {searchUsers} from "@/entities/user/api/searchUsers";
-import {createChat} from "@/entities/chat/api/createChat";
-import {Box, Button, Modal, ScrollArea, TextInput, Text, Badge, ActionIcon} from "@mantine/core";
+'use client'
+
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from "next/navigation";
+import { Box, Button, Modal, ScrollArea, TextInput, Text, Badge, ActionIcon, Group } from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
+import { UserSearchResponse } from "@/entities/user/model/model";
+import { searchUsers } from "@/entities/user/api/searchUsers";
+import { createChat } from "@/entities/chat/api/createChat";
+import { AppAvatar } from "@/shared/ui/AppAvatar/ui/AppAvatar";
+
 import cls from "./CreateGroupModal.module.scss"
 
 interface GroupModalProps {
@@ -14,7 +17,6 @@ interface GroupModalProps {
 }
 
 export const CreateGroupModal = ({isOpened, onClose}: GroupModalProps) => {
-
   const [groupName, setGroupName] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch] = useDebouncedValue(searchQuery, 300)
@@ -23,7 +25,6 @@ export const CreateGroupModal = ({isOpened, onClose}: GroupModalProps) => {
   const [isLoading, setIsLoading] = useState(false)
 
   const router = useRouter()
-  const addChat = useChatStore(state => state.addChat)
 
   useEffect(() => {
     if(debouncedSearch.trim().length > 0) {
@@ -98,8 +99,15 @@ export const CreateGroupModal = ({isOpened, onClose}: GroupModalProps) => {
               key={user.id}
               variant="filled"
               className={cls.userBadge}
+              leftSection={
+                <AppAvatar
+                  name={user.username}
+                  src={user.avatarURL}
+                  size={16}
+                />
+              }
               rightSection={
-                <ActionIcon onClick={() => toggleUsers(user)}>
+                <ActionIcon size="xs" onClick={() => toggleUsers(user)} variant="transparent" color="white">
                   &times;
                 </ActionIcon>
               }
@@ -125,7 +133,13 @@ export const CreateGroupModal = ({isOpened, onClose}: GroupModalProps) => {
                     onClick={() => toggleUsers(user)}
                     className={cls.resultItem}
                   >
-                    <Text size="sm">{user.username}</Text>
+                    <AppAvatar
+                      src={user.avatarURL}
+                      name={user.username}
+                      isOnline={user.isOnline}
+                      size={32}
+                    />
+                    <Text size="sm" fw={500}>{user.username}</Text>
                   </Box>
                 ))}
               </Box>
@@ -138,7 +152,7 @@ export const CreateGroupModal = ({isOpened, onClose}: GroupModalProps) => {
         className={cls.modalBtn}
         onClick={handleCreateGroup}
         loading={isLoading}
-        disabled={!groupName.trim()}
+        disabled={!groupName.trim() || selectedUsers.length === 0}
       >
         Create
       </Button>

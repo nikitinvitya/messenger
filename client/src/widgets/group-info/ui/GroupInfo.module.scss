@@ -1,0 +1,37 @@
+.userLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.infoWrapper {
+  overflow: hidden !important;
+  height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 10px;
+}
+
+.groupName {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.userRow {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.username {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

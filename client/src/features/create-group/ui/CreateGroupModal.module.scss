@@ -39,6 +39,8 @@
 
 .userBadge {
   text-transform: none;
+  height: 28px;
+  padding-left: 4px;
 }
 
 .searchWrapper {
@@ -50,16 +52,18 @@
   left: 0;
   right: 0;
   z-index: 100;
-
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
   max-height: 200px;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 .resultItem {
-  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
 
@@ -69,6 +73,12 @@
     & p {
       color: var(--mantine-color-blue-7);
     }
+  }
+
+  & p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
   }
 }
 

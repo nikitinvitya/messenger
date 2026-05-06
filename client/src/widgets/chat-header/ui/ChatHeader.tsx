@@ -1,34 +1,65 @@
+'use client'
+
+import { ActionIcon, Box, Menu, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { useRouter } from "next/navigation";
+import Image from 'next/image';
 import classNames from 'classnames';
-import cls from './ChatHeader.module.scss'
-import Image from 'next/image'
-import {ActionIcon, Avatar, Box, Menu, Text} from "@mantine/core";
-import {AppLink} from "@/shared/ui/AppLink/ui/AppLink";
-import {AppRoutes} from "@/shared/config/routes";
-import ArrowIcon from '@/shared/assets/ArrowIcon.svg'
-import {leaveChat} from "@/entities/chat/api/leaveChat";
-import {useChatStore} from "@/entities/chat/model/store";
-import {websocketService} from "@/shared/api/websocket";
-import VerticalDotsIcon from "@/shared/assets/VerticalDotsIcon.svg"
-import {useRouter} from "next/navigation";
-import {Chat} from "@/entities/chat";
-import {BASE_URL} from "@/shared/constants/api";
+
+import { Chat } from "@/entities/chat";
+import { leaveChat } from "@/entities/chat/api/leaveChat";
+import { useChatStore } from "@/entities/chat/model/store";
+import { useUserStore } from "@/entities/user";
+import { GroupInfo } from "@/widgets/group-info";
+import { AppLink } from "@/shared/ui/AppLink/ui/AppLink";
+import { AppRoutes } from "@/shared/config/routes";
+import { websocketService } from "@/shared/api/websocket";
+import { AppAvatar } from "@/shared/ui/AppAvatar/ui/AppAvatar";
+
+import ArrowIcon from '@/shared/assets/ArrowIcon.svg';
+import VerticalDotsIcon from "@/shared/assets/VerticalDotsIcon.svg";
+import cls from './ChatHeader.module.scss';
 
 interface ChatHeaderProps {
   className?: string;
   chatName: string;
   chatID: number;
   chatType: Chat["type"];
-  partnerAvatar: string | undefined;
-  partnerUsername: string | undefined;
+  partnerAvatar?: string;
+  partnerUsername?: string;
+  isOnline?: boolean;
 }
 
-export const ChatHeader = ({chatName, chatID, chatType, partnerAvatar, partnerUsername}: ChatHeaderProps) => {
-  const removeChat = useChatStore((state) => state.removeChat)
-  const router = useRouter()
+export const ChatHeader = ({
+                             chatName,
+                             chatID,
+                             chatType,
+                             partnerAvatar,
+                             partnerUsername,
+                             isOnline: initialIsOnline
+                           }: ChatHeaderProps) => {
+  const router = useRouter();
+  const removeChat = useChatStore((state) => state.removeChat);
+  const [infoOpened, { open, close }] = useDisclosure(false);
 
-  const SERVER_URL = BASE_URL!.replace('/api/v1', '');
+  const { user: currentUser } = useUserStore();
+  const currentChat = useChatStore((state) =>
+    state.chats.find(c => c.id === chatID)
+  );
+
+  const partnerInStore = currentChat?.participants?.find(p => p.id !== currentUser?.id);
+
+  const liveIsOnline = chatType === 'private'
+    ? (partnerInStore?.isOnline ?? initialIsOnline)
+    : false;
 
   const handleLeave = async () => {
+    const confirmMsg = chatType === 'group'
+      ? 'Вы действительно хотите покинуть группу?'
+      : 'Вы уверены, что хотите удалить этот чат?';
+
+    if (!window.confirm(confirmMsg)) return;
+
     try {
       await leaveChat(chatID);
       removeChat(chatID);
@@ -37,32 +68,46 @@ export const ChatHeader = ({chatName, chatID, chatType, partnerAvatar, partnerUs
     } catch (error) {
       console.error('Failed to leave chat:', error);
     }
-  }
+  };
 
   const renderTitle = () => {
+    const headerAvatar = (
+      <AppAvatar
+        src={partnerAvatar}
+        name={chatName}
+        isOnline={liveIsOnline}
+        size={36}
+      />
+    );
+
     if (chatType === 'private' && partnerUsername) {
       return (
         <AppLink href={`${AppRoutes.profile}/${partnerUsername}`} className={cls.profileLink}>
-          <Avatar
-            src={partnerAvatar ? `${SERVER_URL}${partnerAvatar}` : null}
-            radius="xl"
-            size="sm"
-          >
-            {chatName.slice(0, 1).toUpperCase()}
-          </Avatar>
-          <Text className={cls.chatName}>{chatName}</Text>
+          {headerAvatar}
+          <Box className={cls.textInfo}>
+            <Text className={cls.chatName}>{chatName}</Text>
+            {liveIsOnline && <Text className={cls.statusText} c="blue">online</Text>}
+          </Box>
         </AppLink>
       );
     }
-    return <Text className={cls.chatName}>{chatName}</Text>;
-  }
+
+    return (
+      <Box onClick={open} className={cls.profileLink}>
+        {headerAvatar}
+        <Box className={cls.textInfo}>
+          <Text className={cls.chatName}>{chatName}</Text>
+        </Box>
+      </Box>
+    );
+  };
 
   return (
     <Box className={classNames(cls.chatHeader)}>
       <Box className={cls.leftSection}>
         <AppLink href={AppRoutes.chats}>
           <ActionIcon variant="subtle" color="gray" size="lg" radius="xl">
-            <Image src={ArrowIcon.src} alt={'to chats'} width={24} height={24} />
+            <Image src={ArrowIcon.src} alt="back" width={24} height={24} />
           </ActionIcon>
         </AppLink>
       </Box>
@@ -71,13 +116,14 @@ export const ChatHeader = ({chatName, chatID, chatType, partnerAvatar, partnerUs
         {renderTitle()}
       </Box>
 
-      <Box className={cls.menuWrapper}>
+      <Box className={cls.rightSection}>
         <Menu shadow="md" width={200} position="bottom-end">
           <Menu.Target>
             <ActionIcon variant="subtle" color="gray" size="lg" radius="xl">
-              <Image src={VerticalDotsIcon.src} alt={"options"} width={24} height={24} />
+              <Image src={VerticalDotsIcon.src} alt="options" width={24} height={24} />
             </ActionIcon>
           </Menu.Target>
+
           <Menu.Dropdown>
             <Menu.Item color="red" onClick={handleLeave}>
               {chatType === 'group' ? 'Leave group' : 'Delete chat'}
@@ -85,7 +131,10 @@ export const ChatHeader = ({chatName, chatID, chatType, partnerAvatar, partnerUs
           </Menu.Dropdown>
         </Menu>
       </Box>
+
+      {chatType === 'group' && (
+        <GroupInfo chatID={chatID} opened={infoOpened} onClose={close} />
+      )}
     </Box>
   );
 };
-
