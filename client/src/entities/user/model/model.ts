@@ -6,6 +6,7 @@ export interface User {
   createdAt: string,
   bio?: string,
   avatarURL?: string,
+  isOnline?: boolean,
 }
 
 export interface UserSearchResponse {
@@ -13,4 +14,5 @@ export interface UserSearchResponse {
   username: string,
   bio?: string,
   avatarURL?: string,
+  isOnline?: boolean,
 }
