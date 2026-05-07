@@ -155,8 +155,16 @@ func (s *authService) VerifyEmail(ctx context.Context, token string) error {
 	return s.repos.DeleteVerificationToken(ctx, token)
 }
 
-func (s *authService) ResendVerification(ctx context.Context, emailStr string) error {
-	user, err := s.repos.GetUserByEmail(ctx, emailStr)
+func (s *authService) ResendVerification(ctx context.Context, identifier string) error {
+	var user *model.User
+	var err error
+
+	if strings.Contains(identifier, "@") {
+		user, err = s.repos.GetUserByEmail(ctx, identifier)
+	} else {
+		user, err = s.repos.GetUserByName(ctx, identifier)
+	}
+
 	if err != nil || user == nil {
 		return errors.New("user not found")
 	}
@@ -164,8 +172,6 @@ func (s *authService) ResendVerification(ctx context.Context, emailStr string) e
 	if user.IsVerified {
 		return errors.New("email already verified")
 	}
-
-	_ = s.repos.DeleteVerificationToken(ctx, emailStr)
 
 	token := uuid.New().String()
 	expiresAt := time.Now().Add(24 * time.Hour)
