@@ -161,8 +161,9 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 	}
 	if sender != nil {
 		messagePayload.Sender = &dto.SenderInfo{
-			ID:       sender.ID,
-			Username: sender.Username,
+			ID:        sender.ID,
+			Username:  sender.Username,
+			AvatarURL: sender.AvatarURL,
 		}
 	}
 
@@ -284,8 +285,9 @@ func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID in
 	}
 	if sender != nil {
 		messagePayload.Sender = &dto.SenderInfo{
-			ID:       sender.ID,
-			Username: sender.Username,
+			ID:        sender.ID,
+			Username:  sender.Username,
+			AvatarURL: sender.AvatarURL,
 		}
 	}
 
@@ -392,8 +394,9 @@ func (s *messageService) ForwardMessage(ctx context.Context, forwarderID, destin
 		}
 		if sender != nil {
 			messagePayload.Sender = &dto.SenderInfo{
-				ID:       sender.ID,
-				Username: sender.Username,
+				ID:        sender.ID,
+				Username:  sender.Username,
+				AvatarURL: sender.AvatarURL,
 			}
 		}
 

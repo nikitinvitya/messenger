@@ -3,8 +3,9 @@ package dto
 import "time"
 
 type SenderInfo struct {
-	ID       int    `json:"id"`
-	Username string `json:"username"`
+	ID        int     `json:"id"`
+	Username  string  `json:"username"`
+	AvatarURL *string `json:"avatarURL"`
 }
 
 type MessageResponse struct {

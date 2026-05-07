@@ -70,7 +70,8 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
        				  M.image_url,
        				  M.type,
 					  U.id as sender_id, 
-					  U.username as sender_username
+					  U.username as sender_username,
+					  U.avatar_url
 			   FROM messages M
 			   JOIN users U on M.sender_id = U.id
 			   WHERE M.chat_id = $1
@@ -102,6 +103,7 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 			&message.Type,
 			&senderInfo.ID,
 			&senderInfo.Username,
+			&senderInfo.AvatarURL,
 		); err != nil {
 			return messagesResponse, err
 		}

@@ -193,8 +193,9 @@ func (s *chatService) sendSystemMessage(ctx context.Context, chatID, userID int,
 		CreatedAt: time.Now(),
 		Type:      "system",
 		Sender: &dto.SenderInfo{
-			ID:       user.ID,
-			Username: user.Username,
+			ID:        user.ID,
+			Username:  user.Username,
+			AvatarURL: user.AvatarURL,
 		},
 	}
 
@@ -237,6 +238,11 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 		UserID: userID,
 	}
 	s.hub.SendToUsers(websocket.EventUserLeftChat, leavePayload, participantIDs)
+
+	updatedChatDTO, err := s.GetChatByID(context.Background(), userID, chatID)
+	if err == nil {
+		s.hub.SendToUsers(websocket.EventChatUpdated, updatedChatDTO, participantIDs)
+	}
 
 	go s.sendSystemMessage(context.Background(), chatID, userID, "left the chat", participantIDs)
 
