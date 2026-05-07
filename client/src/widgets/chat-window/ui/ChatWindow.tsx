@@ -3,20 +3,22 @@
 import { useEffect } from 'react';
 import classNames from 'classnames';
 import { Box, Button, Text } from '@mantine/core';
-import {type Message, MessageApiResponse, useMessageStore} from '@/entities/message';
+import { useDisclosure } from '@mantine/hooks';
+import { type Message, MessageApiResponse, useMessageStore } from '@/entities/message';
 import { ChatHeader } from '@/widgets/chat-header';
 import { MessageList } from '@/widgets/message-list';
 import { SendMessageForm } from '@/features/send-message';
+import { GroupInfo } from '@/widgets/group-info';
 import wallpaper from '@/shared/assets/ChatWallpaper.jpg';
 import { type Chat } from '@/entities/chat';
 import cls from './ChatWindow.module.scss';
+import Image from "next/image";
 
 interface ChatWindowProps {
-  className?: string;
-  initialMessages: Message[];
-  blockStatus: MessageApiResponse["blockStatus"];
   chatID: number;
   chatName: string;
+  initialMessages: Message[];
+  blockStatus: MessageApiResponse["blockStatus"];
   chatType: Chat["type"];
   partnerAvatar: string | undefined;
   partnerUsername: string | undefined;
@@ -39,6 +41,7 @@ export const ChatWindow = (props: ChatWindowProps) => {
     initialGroupAvatar
   } = props;
 
+  const [infoOpened, { toggle: toggleInfo, close: closeInfo }] = useDisclosure(false);
   const clearMessages = useMessageStore((state) => state.clearMessages);
 
   useEffect(() => {
@@ -59,23 +62,45 @@ export const ChatWindow = (props: ChatWindowProps) => {
   }
 
   return (
-    <Box className={classNames(cls.chatWindow)} style={{backgroundImage: `url(${wallpaper.src})`}}>
-      <ChatHeader
-        chatName={chatName}
-        chatID={chatID}
-        chatType={chatType}
-        partnerAvatar={partnerAvatar}
-        partnerUsername={partnerUsername}
-        isOnline={initialIsOnline}
-        initialParticipantsCount={initialParticipantsCount}
-        initialGroupAvatar={initialGroupAvatar}
-      />
-      <MessageList
-        chatType={chatType}
-        initialMessages={initialMessages} />
+    <Box className={classNames(cls.chatWindow)}>
+      <Box className={cls.mainSection}>
+        <Image
+          src={wallpaper}
+          alt="Background"
+          fill
+          priority={true}
+          unoptimized
+          className={cls.wallpaper}
+        />
+        <ChatHeader
+          chatName={chatName}
+          chatID={chatID}
+          chatType={chatType}
+          partnerAvatar={partnerAvatar}
+          partnerUsername={partnerUsername}
+          isOnline={initialIsOnline}
+          initialParticipantsCount={initialParticipantsCount}
+          initialGroupAvatar={initialGroupAvatar}
+          onToggleInfo={toggleInfo}
+        />
+        <Box className={cls.messagesWrapper}>
+          <MessageList
+            chatType={chatType}
+            initialMessages={initialMessages} />
+        </Box>
 
-      <Box className={cls.blurFooter} />
-      {renderFooter()}
+        <Box className={cls.footerContainer}>
+          {renderFooter()}
+        </Box>
+      </Box>
+
+      {chatType === 'group' && (
+        <GroupInfo
+          chatID={chatID}
+          opened={infoOpened}
+          onClose={closeInfo}
+        />
+      )}
     </Box>
   );
 };

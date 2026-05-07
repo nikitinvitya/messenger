@@ -1,36 +1,24 @@
-'use client'
+import { Box, Text } from "@mantine/core";
+import cls from './ChatsView.module.scss';
+import wallpaper from "@/shared/assets/ChatWallpaper.jpg";
+import Image from "next/image";
 
-import classNames from 'classnames';
-import cls from './ChatsView.module.scss'
-import {Box} from "@mantine/core";
-import {ChatList} from "@/widgets/chat-list";
-import {ChatListHeader} from "@/widgets/chat-list-header";
-import {useState} from "react";
-import {Chat} from "@/entities/chat";
-import {UserSearchResponse} from "@/entities/user/model/model";
-import {UserSearchResult} from "@/widgets/user-search-result/ui/UserSearchResult";
-import {CreateGroupButton} from "@/features/create-group-button";
-
-interface ChatsViewProps {
-  chats: Chat[];
-  className?: string;
-}
-
-export const ChatsView = ({chats}: ChatsViewProps) => {
-  const [isActiveSearch, setIsActiveSearch] = useState<boolean>(false)
-  const [userSearchResult, setUserSearchResult] = useState<UserSearchResponse[]>([])
-
+export const ChatsView = () => {
   return (
-    <Box className={classNames(cls.chatsView)}>
-      <ChatListHeader setSearchResults={setUserSearchResult} setIsActiveSearch={setIsActiveSearch} isActiveSearch={isActiveSearch}/>
-      {isActiveSearch ?
-        <UserSearchResult users={userSearchResult} />
-      :
-        <ChatList chatList={chats} />
-      }
+    <Box className={cls.chatsViewPlaceholder}>
+      <Image
+        src={wallpaper}
+        alt="Background"
+        fill
+        priority={true}
+        unoptimized
+        className={cls.wallpaper}
+        placeholder="blur"
+      />
 
-      {!isActiveSearch && <CreateGroupButton/>}
+      <Box className={cls.centeredBadge}>
+        <Text size="sm">Select a chat to start messaging</Text>
+      </Box>
     </Box>
   );
 };
-

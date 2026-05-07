@@ -1,7 +1,6 @@
 'use client'
 
 import { ActionIcon, Box, Menu, Text } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
 import classNames from 'classnames';
@@ -10,7 +9,6 @@ import { Chat } from "@/entities/chat";
 import { leaveChat } from "@/entities/chat/api/leaveChat";
 import { useChatStore } from "@/entities/chat/model/store";
 import { useUserStore } from "@/entities/user";
-import { GroupInfo } from "@/widgets/group-info";
 import { AppLink } from "@/shared/ui/AppLink/ui/AppLink";
 import { AppRoutes } from "@/shared/config/routes";
 import { websocketService } from "@/shared/api/websocket";
@@ -30,6 +28,7 @@ interface ChatHeaderProps {
   isOnline?: boolean;
   initialParticipantsCount?: number;
   initialGroupAvatar?: string;
+  onToggleInfo: () => void;
 }
 
 export const ChatHeader = ({
@@ -40,11 +39,11 @@ export const ChatHeader = ({
                              partnerUsername,
                              isOnline: initialIsOnline,
                              initialParticipantsCount,
-                             initialGroupAvatar
+                             initialGroupAvatar,
+                             onToggleInfo
                            }: ChatHeaderProps) => {
   const router = useRouter();
   const removeChat = useChatStore((state) => state.removeChat);
-  const [infoOpened, { open, close }] = useDisclosure(false);
 
   const { user: currentUser } = useUserStore();
 
@@ -104,7 +103,7 @@ export const ChatHeader = ({
     }
 
     return (
-      <Box onClick={open} className={cls.profileLink}>
+      <Box onClick={onToggleInfo} className={cls.profileLink}>
         {headerAvatar}
         <Box className={cls.textInfo}>
           <Text className={cls.chatName}>{displayChatName}</Text>
@@ -119,7 +118,7 @@ export const ChatHeader = ({
   return (
     <Box className={classNames(cls.chatHeader)}>
       <Box className={cls.leftSection}>
-        <AppLink href={AppRoutes.chats}>
+        <AppLink href={AppRoutes.chats} className={cls.backButton}>
           <ActionIcon variant="subtle" color="gray" size="lg" radius="xl">
             <Image src={ArrowIcon.src} alt="back" width={24} height={24} />
           </ActionIcon>
@@ -145,10 +144,6 @@ export const ChatHeader = ({
           </Menu.Dropdown>
         </Menu>
       </Box>
-
-      {chatType === 'group' && (
-        <GroupInfo chatID={chatID} opened={infoOpened} onClose={close} />
-      )}
     </Box>
   );
 };
