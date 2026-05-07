@@ -1,5 +1,5 @@
-import {create} from "zustand/react";
-import {Chat} from "./model";
+import { create } from "zustand";
+import { Chat } from "./model";
 
 interface ChatState {
   chats: Chat[];
@@ -32,14 +32,33 @@ export const useChatStore = create<ChatState & ChatActions>((set) => ({
   })),
 
   updateChat: (chatId, updatedChat) => set((state) => {
-    const chatToUpdate = state.chats.find(chat => chat.id === chatId)
-    if(!chatToUpdate) {
-      return state
+    const chatToUpdate = state.chats.find(c => c.id === chatId);
+
+    if (!chatToUpdate) {
+      const isFullChat =
+        updatedChat.id !== undefined &&
+        updatedChat.type !== undefined &&
+        updatedChat.createdAt !== undefined;
+
+      if (isFullChat) {
+        return {
+          chats: [updatedChat as Chat, ...state.chats]
+        };
+      }
+      return state;
     }
-    const updatedInstance = {...chatToUpdate, ...updatedChat}
+
+    const mergedChat: Chat = {
+      ...chatToUpdate,
+      ...updatedChat
+    };
+
     return {
-      chats: [updatedInstance, ...state.chats.filter(c => c.id !== chatId)]
-    }
+      chats: [
+        mergedChat,
+        ...state.chats.filter(c => c.id !== chatId)
+      ]
+    };
   }),
 
   setLoading: (isLoading) => set({ isLoading }),
@@ -52,4 +71,4 @@ export const useChatStore = create<ChatState & ChatActions>((set) => ({
       )
     }))
   })),
-}))
+}));
