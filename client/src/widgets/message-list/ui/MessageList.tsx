@@ -61,6 +61,7 @@ export const MessageList = ({ initialMessages, chatType }: MessageListProps) => 
           chatType={chatType}
         />
       ))}
+      <Box className={cls.listSpacer} />
     </Box>
   );
 };

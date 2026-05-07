@@ -1,0 +1,26 @@
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e0e0e0;
+  background: #fff;
+  position: relative;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  &.hiddenOnMobile {
+    @media (max-width: 768px) {
+      display: none;
+    }
+  }
+}
+
+.scrollArea {
+  flex: 1;
+  overflow-y: auto;
+}
