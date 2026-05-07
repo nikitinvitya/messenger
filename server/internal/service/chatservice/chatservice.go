@@ -165,8 +165,11 @@ func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (
 }
 
 func (s *chatService) sendSystemMessage(ctx context.Context, chatID, userID int, text string, targets []int) {
-	user, err := s.userRepo.GetUserByID(ctx, userID)
+	bgCtx := context.Background()
+
+	user, err := s.userRepo.GetUserByID(bgCtx, userID)
 	if err != nil {
+		slog.Error("failed to get user for system message", "error", err)
 		return
 	}
 
@@ -177,8 +180,9 @@ func (s *chatService) sendSystemMessage(ctx context.Context, chatID, userID int,
 		Type:     "system",
 	}
 
-	msgID, err := s.messageRepo.CreateMessage(ctx, msg)
+	msgID, err := s.messageRepo.CreateMessage(bgCtx, msg)
 	if err != nil {
+		slog.Error("failed to create system message", "error", err)
 		return
 	}
 
@@ -234,7 +238,7 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 	}
 	s.hub.SendToUsers(websocket.EventUserLeftChat, leavePayload, participantIDs)
 
-	go s.sendSystemMessage(ctx, chatID, userID, "left the chat", participantIDs)
+	go s.sendSystemMessage(context.Background(), chatID, userID, "left the chat", participantIDs)
 
 	participantsCount, err := s.repo.CountChatParticipants(ctx, chatID)
 	if err != nil {
@@ -336,7 +340,7 @@ func (s *chatService) AddParticipant(ctx context.Context, requesterID, chatID, t
 	s.hub.SendToUsers(websocket.EventChatUpdated, updatedChat, participantIDs)
 	s.hub.SendToUsers(websocket.EventChatCreated, updatedChat, []int{targetUserID})
 
-	go s.sendSystemMessage(ctx, chatID, targetUserID, "joined the chat", participantIDs)
+	go s.sendSystemMessage(context.Background(), chatID, targetUserID, "joined the chat", participantIDs)
 
 	return nil
 }
