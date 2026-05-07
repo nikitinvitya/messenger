@@ -9,3 +9,7 @@ interface UserSignInData {
 export const signIn = (data: UserSignInData) => {
   return api.post('/auth/login', data)
 }
+
+export const resendVerification = (identifier: string) => {
+  return api.post('/auth/resend-verification', { identifier });
+}

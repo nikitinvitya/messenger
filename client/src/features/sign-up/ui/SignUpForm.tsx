@@ -1,14 +1,14 @@
 'use client';
 
 import { useForm } from '@mantine/form';
-import { TextInput, PasswordInput, Button, Box, Group } from '@mantine/core';
+import { TextInput, PasswordInput, Button, Box, Group, Text, Title, Stack } from '@mantine/core';
 import { z } from 'zod';
 import { signUpByEmail } from '../model/api';
 import { useRouter } from 'next/navigation';
-import {useState} from "react";
+import { useState } from "react";
 import cls from './SignUpForm.module.scss'
-import {AppLink} from "@/shared/ui/AppLink/ui/AppLink";
-import {AppRoutes} from "@/shared/config/routes";
+import { AppLink } from "@/shared/ui/AppLink/ui/AppLink";
+import { AppRoutes } from "@/shared/config/routes";
 
 const signUpSchema = z.object({
   email: z.email({ error: 'Invalid email format' }),
@@ -16,24 +16,18 @@ const signUpSchema = z.object({
   password: z.string().min(8, { error: 'Password must contain at least 8 characters' }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  error: "Passwords don't match",
+  message: "Passwords don't match",
   path: ["confirmPassword"],
 });
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export function SignUpForm() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
   const form = useForm<SignUpFormData>({
-    initialValues: {
-      email: '',
-      username: '',
-      password: '',
-      confirmPassword: '',
-    },
-
+    initialValues: { email: '', username: '', password: '', confirmPassword: '' },
     validate: (values) => {
       const result = signUpSchema.safeParse(values);
       if (result.success) {
@@ -59,70 +53,49 @@ export function SignUpForm() {
 
   const handleSubmit = async (values: SignUpFormData) => {
     setIsLoading(true);
-
     try {
       const { confirmPassword, ...dataToSend } = values;
       await signUpByEmail(dataToSend);
-      router.push(AppRoutes.login);
+      setIsRegistered(true);
     } catch (err: any) {
-      console.error('Registration error:', err);
-      if (err.response?.data?.error) {
-        if (err.response.data.error === 'Username already exists') {
-          form.setFieldError('username', 'This username is already taken');
-        } else if (err.response.data.error === 'Email already exists') {
-          form.setFieldError('email', 'This email is already in use');
-        } else {
-          form.setErrors({ root: 'An unexpected error occurred' });
-        }
+      const data = err.response?.data;
+      if (data?.code === 'USERNAME_TAKEN') {
+        form.setFieldError('username', 'This username is already taken');
+      } else if (data?.code === 'EMAIL_TAKEN') {
+        form.setFieldError('email', 'This email is already in use');
+      } else {
+        form.setErrors({ root: data?.error || 'Registration failed' });
       }
     } finally {
       setIsLoading(false);
     }
-
   };
 
+  if (isRegistered) {
+    return (
+      <Stack align="center" className={cls.signUpForm} gap="md">
+        <Title order={3}>Confirm your email</Title>
+        <Text ta="center">
+          We've sent a verification link to <b>{form.values.email}</b>.
+          Please check your inbox to activate your account.
+        </Text>
+        <AppLink href={AppRoutes.login}>
+          <Button variant="outline" fullWidth>Go to Login</Button>
+        </AppLink>
+      </Stack>
+    );
+  }
+
   return (
-    <Box
-      component="form"
-      onSubmit={form.onSubmit(handleSubmit)}
-      className={cls.signUpForm}>
-      {form.errors.root && (
-        <p className={cls.errors}>{form.errors.root}</p>
-      )}
+    <Box component="form" onSubmit={form.onSubmit(handleSubmit)} className={cls.signUpForm}>
+      {form.errors.root && <p className={cls.errors}>{form.errors.root}</p>}
 
-      <TextInput
-        required
-        label="Email"
-        placeholder="your@email.com"
-        key={form.key('email')}
-        {...form.getInputProps('email')}
-      />
+      <TextInput required label="Email" placeholder="your@email.com" {...form.getInputProps('email')} />
+      <TextInput required label="Username" placeholder="username" mt="sm" {...form.getInputProps('username')} />
+      <PasswordInput required label="Password" placeholder="Password" mt="sm" {...form.getInputProps('password')} />
+      <PasswordInput required label="Confirm password" placeholder="Confirm password" mt="sm" {...form.getInputProps('confirmPassword')} />
 
-      <TextInput
-        required
-        label="Username"
-        placeholder="username"
-        key={form.key('username')}
-        {...form.getInputProps('username')}
-      />
-
-      <PasswordInput
-        required
-        label="Password"
-        placeholder="Password"
-        key={form.key('password')}
-        {...form.getInputProps('password')}
-      />
-
-      <PasswordInput
-        required
-        label="Confirm password"
-        placeholder="Confirm password"
-        key={form.key('confirmPassword')}
-        {...form.getInputProps('confirmPassword')}
-      />
-
-      <AppLink href={AppRoutes.login} >Already have an account? Login</AppLink>
+      <AppLink href={AppRoutes.login}>Already have an account? Login</AppLink>
 
       <Group className={cls.formFooter}>
         <Button type="submit" disabled={isLoading} loading={isLoading} className={cls.signUpBtn}>
