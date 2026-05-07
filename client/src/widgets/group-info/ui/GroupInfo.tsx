@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Drawer, Stack, Box, Text, Group, ScrollArea, Divider, Loader, Center, TextInput, ActionIcon, Button } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import Image from 'next/image';
+import classNames from 'classnames';
 
 import { Chat } from '@/entities/chat';
 import { getChatInfo } from '@/entities/chat/api/getChatInfo';
@@ -25,6 +26,7 @@ interface GroupInfoProps {
 }
 
 export const GroupInfo = ({ opened, onClose, chatID }: GroupInfoProps) => {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [chatData, setChatData] = useState<Chat | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -107,72 +109,92 @@ export const GroupInfo = ({ opened, onClose, chatID }: GroupInfoProps) => {
     }
   };
 
+  const renderContent = () => (
+    <div className={cls.contentContainer}>
+      <Box className={cls.groupHeader}>
+        <Box className={cls.avatarWrapper} onClick={() => fileInputRef.current?.click()}>
+          <AppAvatar src={chatData?.avatarURL} name={chatData?.name || 'Group'} size={100} radius='50%' />
+          <div className={cls.avatarOverlay}>Change</div>
+          {isUpdating && <Loader size="sm" className={cls.avatarLoader} />}
+        </Box>
+        <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileChange} />
+
+        <div className={cls.nameSection}>
+          {isEditingName ? (
+            <Group gap="xs" wrap="nowrap" w="100%">
+              <TextInput value={newName} onChange={(e) => setNewName(e.target.value)} size="xs" style={{ flex: 1 }} />
+              <Button size="xs" onClick={handleSaveName} loading={isUpdating}>Save</Button>
+            </Group>
+          ) : (
+            <Group gap="xs" justify="center">
+              <Text fw={700} size="xl">{chatData?.name}</Text>
+              <ActionIcon variant="subtle" color="gray" onClick={() => setIsEditingName(true)}>
+                <Image src={EditIcon.src} width={18} height={18} alt="edit" />
+              </ActionIcon>
+            </Group>
+          )}
+          <Text className={cls.participantCount}>
+            {chatData?.participants?.length || 0} participants
+          </Text>
+        </div>
+      </Box>
+
+      <Button variant="light" fullWidth onClick={openAdd} mb="md">Add Member</Button>
+      <Divider label="Participants" labelPosition="center" mb="sm" />
+
+      <ScrollArea className={cls.participantsScroll} type="auto">
+        <Stack gap={0}>
+          {chatData?.participants?.map(user => (
+            <AppLink key={user.id} href={`${AppRoutes.profile}/${user.username}`} onClick={onClose} className={cls.userLink}>
+              <Group className={cls.userRow} wrap="nowrap">
+                <AppAvatar src={user.avatarURL} name={user.username} isOnline={user.isOnline} />
+                <Box style={{ flex: 1 }}>
+                  <Text size="sm" className={cls.username}>{user.username}</Text>
+                  <Text size="xs" c={user.isOnline ? "green" : "dimmed"}>{user.isOnline ? 'online' : 'offline'}</Text>
+                </Box>
+              </Group>
+            </AppLink>
+          ))}
+        </Stack>
+      </ScrollArea>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        <Drawer
+          opened={opened}
+          onClose={onClose}
+          position="right"
+          title="Group Info"
+          size="100%"
+          classNames={{ body: cls.infoWrapper }}
+        >
+          {isLoading ? <Center h="100%"><Loader size="md" /></Center> : chatData ? renderContent() : null}
+        </Drawer>
+        <AddMemberModal opened={addModalOpened} onClose={closeAdd} chatID={chatID} onSuccess={fetchInfo} />
+      </>
+    );
+  }
+
   return (
     <>
-      <Drawer
-        opened={opened}
-        onClose={onClose}
-        position="right"
-        title="Group Info"
-        size="sm"
-        classNames={{ body: cls.infoWrapper }}
-      >
-        {isLoading ? (
-          <Center h="100%"><Loader size="md" /></Center>
-        ) : chatData ? (
-          <div className={cls.contentContainer}>
-            <Box className={cls.groupHeader}>
-              <Box className={cls.avatarWrapper} onClick={() => fileInputRef.current?.click()}>
-                <AppAvatar src={chatData.avatarURL} name={chatData.name || 'Group'} size={100} radius='50%' />
-                <div className={cls.avatarOverlay}>Change</div>
-                {isUpdating && <Loader size="sm" className={cls.avatarLoader} />}
-              </Box>
-              <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileChange} />
-
-              <div className={cls.nameSection}>
-                {isEditingName ? (
-                  <Group gap="xs" wrap="nowrap" w="100%">
-                    <TextInput value={newName} onChange={(e) => setNewName(e.target.value)} size="xs" style={{ flex: 1 }} />
-                    <Button size="xs" onClick={handleSaveName} loading={isUpdating}>Save</Button>
-                  </Group>
-                ) : (
-                  <Group gap="xs" justify="center">
-                    <Text fw={700} size="xl">{chatData.name}</Text>
-                    <ActionIcon variant="subtle" color="gray" onClick={() => setIsEditingName(true)}>
-                      <Image src={EditIcon.src} width={18} height={18} alt="edit" />
-                    </ActionIcon>
-                  </Group>
-                )}
-                <Text className={cls.participantCount}>
-                  {chatData.participants?.length || 0} participants
-                </Text>
-              </div>
-            </Box>
-
-            <Button variant="light" fullWidth onClick={openAdd} mb="md">Add Member</Button>
-            <Divider label="Participants" labelPosition="center" mb="sm" />
-
-            <ScrollArea className={cls.participantsScroll} type="auto">
-              <Stack gap={0}>
-                {chatData.participants?.map(user => (
-                  <AppLink key={user.id} href={`${AppRoutes.profile}/${user.username}`} onClick={onClose} className={cls.userLink}>
-                    <Group className={cls.userRow} wrap="nowrap">
-                      <AppAvatar src={user.avatarURL} name={user.username} isOnline={user.isOnline} />
-                      <Box style={{ flex: 1 }}>
-                        <Text size="sm" className={cls.username}>{user.username}</Text>
-                        <Text size="xs" c={user.isOnline ? "green" : "dimmed"}>{user.isOnline ? 'online' : 'offline'}</Text>
-                      </Box>
-                    </Group>
-                  </AppLink>
-                ))}
-              </Stack>
-            </ScrollArea>
-          </div>
-        ) : (
-          <Center><Text c="red">Failed to load group info</Text></Center>
-        )}
-      </Drawer>
-
+      <aside className={classNames(cls.desktopPanel, { [cls.opened]: opened })}>
+        <Box className={cls.panelHeader}>
+          <Text fw={600}>Group Info</Text>
+          <ActionIcon onClick={onClose} variant="subtle" color="gray">✕</ActionIcon>
+        </Box>
+        <Box className={cls.desktopScrollWrapper}>
+          {isLoading ? (
+            <Center h="100%"><Loader size="md" /></Center>
+          ) : chatData ? (
+            renderContent()
+          ) : (
+            <Center h="100%"><Text c="red">Failed to load info</Text></Center>
+          )}
+        </Box>
+      </aside>
       <AddMemberModal opened={addModalOpened} onClose={closeAdd} chatID={chatID} onSuccess={fetchInfo} />
     </>
   );
