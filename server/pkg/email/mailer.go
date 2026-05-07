@@ -43,6 +43,7 @@ func (m *mailer) SendVerificationEmail(to string, token string) error {
 				<p><a href="%s" style="background: #2b5278; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify My Email</a></p>
 				<p>If the button doesn't work, copy and paste this link: <br> %s</p>
 				<p>This link will expire in 24 hours.</p>
+				<p>If you didn't request this letter, just ignore it.</p>
 			</body>
 		</html>`, verificationURL, verificationURL)
 

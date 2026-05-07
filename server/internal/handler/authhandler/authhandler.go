@@ -156,14 +156,14 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
-		Email string `json:"email" validate:"required,email"`
+		Identifier string `json:"identifier" validate:"required,min=3"`
 	}
 
 	if !helper.ValidateRequest(w, r, &requestBody) {
 		return
 	}
 
-	if err := h.service.ResendVerification(r.Context(), requestBody.Email); err != nil {
+	if err := h.service.ResendVerification(r.Context(), requestBody.Identifier); err != nil {
 		handler.ClientErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
