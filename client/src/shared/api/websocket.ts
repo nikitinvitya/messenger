@@ -74,23 +74,35 @@ class WebSocketService {
             addChat(payload);
             break;
 
-          case 'user_left_chat':
+          case 'user_left_chat': {
             const eventUserId = payload.userId;
             const eventChatId = payload.chatId;
-            console.log('User left event received:', { eventUserId, eventChatId, currentUserId: currentUser?.id });
-            if (currentUser && payload.userId === currentUser.id) {
+
+            const { removeChat, updateChat, chats } = useChatStore.getState();
+            const { user: currentUser } = useUserStore.getState();
+
+            if (currentUser && eventUserId === currentUser.id) {
               removeChat(eventChatId);
               if (window.location.pathname === `/chats/${eventChatId}`) {
                 window.location.href = '/chats';
               }
             } else {
-              console.log('Other user left chat:', payload.userId);
+              const targetChat = chats.find(c => c.id === eventChatId);
+
+              if (targetChat && targetChat.participants) {
+                const updatedParticipants = targetChat.participants.filter(
+                  p => p.id !== eventUserId
+                );
+
+                updateChat(eventChatId, { participants: updatedParticipants });
+              }
+
             }
             break;
+          }
 
           case 'chat_deleted':
             const deletedChatId = payload.chatId || payload.chatID;
-            console.log('WS: chat_deleted received for ID:', deletedChatId);
 
             if (deletedChatId) {
               removeChat(deletedChatId);
@@ -113,7 +125,6 @@ class WebSocketService {
           }
 
           case 'chat_updated': {
-            console.log('Processing chat_updated for:', payload.id);
             updateChat(payload.id, payload);
             break;
           }

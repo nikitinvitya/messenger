@@ -1,8 +1,11 @@
 .messageWrapper {
   display: flex;
   margin-bottom: 2px;
-  transition: background-color 0.5s ease;
   position: relative;
+  gap: 8px;
+  align-items: flex-end;
+  width: 100%;
+  padding: 0 12px;
 
   &.myMessageWrapper {
     justify-content: flex-end;
@@ -18,9 +21,8 @@
     }
   }
 
-  &:not(.myMessageWrapper) {
+  &.theirMessageWrapper {
     justify-content: flex-start;
-    padding-left: 5px;
 
     .actionsOverlay {
       left: 10px;
@@ -34,17 +36,25 @@
   }
 }
 
+.avatarGutter {
+  width: 36px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+
 .highlighted {
   background-color: rgba(43, 82, 120, 0.2);
 }
 
 .messageItem {
-  max-width: 400px;
+  max-width: 75%;
   width: fit-content;
   display: flex;
   flex-direction: column;
   padding: 4px;
-  border-radius: 16px;
+  border-radius: 14px;
   position: relative;
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -62,16 +72,11 @@
   pointer-events: auto;
 }
 
-.forwardedHeader {
-  border-left: 2px solid rgba(43, 82, 120, 0.4);
-  margin: 2px 4px 6px 4px;
-  padding-left: 8px;
-}
-
 .forwardedLabel {
   font-size: 0.7rem;
   font-weight: 600;
   color: #2b5278;
+  padding: 2px 8px;
 }
 
 .messageWrapper:hover .actionsOverlay {
@@ -175,12 +180,13 @@
 
 .imageWrapper {
   width: 100%;
+  padding: 2px;
 
   img {
     width: 100%;
     height: auto;
     display: block;
-    border-radius: 12px;
+    border-radius: 10px;
     max-height: 500px;
     object-fit: cover;
     transition: filter 0.2s ease;
@@ -195,38 +201,27 @@
   width: 100%;
   font-size: 0.75rem;
   font-weight: 600;
-  opacity: 0.6;
-  margin-bottom: 2px;
   padding: 4px 8px 0;
   color: #ff3232;
+  text-decoration: none;
 }
 
 .fromMe {
   background-color: #ecfadb;
   color: #000;
-  border-radius: 16px 6px 6px 16px;
+  border-bottom-right-radius: 4px;
 }
 
 .fromThem {
   background-color: #fff;
   color: #000;
-  border-radius: 6px 16px 16px 6px;
-}
-
-.first.fromMe {
-  border-top-right-radius: 16px;
-  border-top-left-radius: 16px;
-}
-
-.first.fromThem {
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  border-bottom-left-radius: 4px;
 }
 
 .fromMe.tail::after {
   content: "";
   position: absolute;
-  right: -5px;
+  right: -6px;
   bottom: 0;
   width: 10px;
   height: 10px;
@@ -237,7 +232,7 @@
 .fromThem.tail::after {
   content: "";
   position: absolute;
-  left: -5px;
+  left: -6px;
   bottom: 0;
   width: 10px;
   height: 10px;
@@ -268,4 +263,28 @@
   object-fit: contain;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.systemMessageWrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 12px 0;
+}
+
+.systemMessageText {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #4a4a4a;
+  padding: 4px 14px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.4;
+  backdrop-filter: blur(2px);
+
+  a {
+    text-decoration: none;
+    color: #4a4a4a;
+  }
 }
