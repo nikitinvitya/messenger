@@ -28,38 +28,49 @@ interface ChatHeaderProps {
   partnerAvatar?: string;
   partnerUsername?: string;
   isOnline?: boolean;
+  initialParticipantsCount?: number;
+  initialGroupAvatar?: string;
 }
 
 export const ChatHeader = ({
-                             chatName,
+                             chatName: initialChatName,
                              chatID,
                              chatType,
-                             partnerAvatar,
+                             partnerAvatar: initialPartnerAvatar,
                              partnerUsername,
-                             isOnline: initialIsOnline
+                             isOnline: initialIsOnline,
+                             initialParticipantsCount,
+                             initialGroupAvatar
                            }: ChatHeaderProps) => {
   const router = useRouter();
   const removeChat = useChatStore((state) => state.removeChat);
   const [infoOpened, { open, close }] = useDisclosure(false);
 
   const { user: currentUser } = useUserStore();
-  const currentChat = useChatStore((state) =>
+
+  const chatFromStore = useChatStore((state) =>
     state.chats.find(c => c.id === chatID)
   );
 
-  const partnerInStore = currentChat?.participants?.find(p => p.id !== currentUser?.id);
+  const partnerInStore = chatFromStore?.participants?.find(p => p.id !== currentUser?.id);
+
+  const displayChatName = chatType === 'group'
+    ? (chatFromStore?.name || initialChatName)
+    : (partnerInStore?.username || initialChatName);
+
+  const displayAvatar = chatType === 'group'
+    ? (chatFromStore?.avatarURL || initialGroupAvatar)
+    : (partnerInStore?.avatarURL || initialPartnerAvatar);
 
   const liveIsOnline = chatType === 'private'
     ? (partnerInStore?.isOnline ?? initialIsOnline)
     : false;
 
+  const participantsCount = chatFromStore?.participants
+    ? chatFromStore.participants.length
+    : (initialParticipantsCount ?? 0);
+
   const handleLeave = async () => {
-    const confirmMsg = chatType === 'group'
-      ? 'Вы действительно хотите покинуть группу?'
-      : 'Вы уверены, что хотите удалить этот чат?';
-
-    if (!window.confirm(confirmMsg)) return;
-
     try {
       await leaveChat(chatID);
       removeChat(chatID);
@@ -73,8 +84,8 @@ export const ChatHeader = ({
   const renderTitle = () => {
     const headerAvatar = (
       <AppAvatar
-        src={partnerAvatar}
-        name={chatName}
+        src={displayAvatar}
+        name={displayChatName}
         isOnline={liveIsOnline}
         size={36}
       />
@@ -85,7 +96,7 @@ export const ChatHeader = ({
         <AppLink href={`${AppRoutes.profile}/${partnerUsername}`} className={cls.profileLink}>
           {headerAvatar}
           <Box className={cls.textInfo}>
-            <Text className={cls.chatName}>{chatName}</Text>
+            <Text className={cls.chatName}>{displayChatName}</Text>
             {liveIsOnline && <Text className={cls.statusText} c="blue">online</Text>}
           </Box>
         </AppLink>
@@ -96,7 +107,10 @@ export const ChatHeader = ({
       <Box onClick={open} className={cls.profileLink}>
         {headerAvatar}
         <Box className={cls.textInfo}>
-          <Text className={cls.chatName}>{chatName}</Text>
+          <Text className={cls.chatName}>{displayChatName}</Text>
+          <Text className={cls.statusText} c="dimmed">
+            {participantsCount} participants
+          </Text>
         </Box>
       </Box>
     );

@@ -11,7 +11,6 @@ import wallpaper from '@/shared/assets/ChatWallpaper.jpg';
 import { type Chat } from '@/entities/chat';
 import cls from './ChatWindow.module.scss';
 
-
 interface ChatWindowProps {
   className?: string;
   initialMessages: Message[];
@@ -21,10 +20,24 @@ interface ChatWindowProps {
   chatType: Chat["type"];
   partnerAvatar: string | undefined;
   partnerUsername: string | undefined;
+  initialIsOnline: boolean;
+  initialParticipantsCount: number;
+  initialGroupAvatar?: string;
 }
 
 export const ChatWindow = (props: ChatWindowProps) => {
-  const { chatID, chatName, className, initialMessages, blockStatus, chatType, partnerUsername, partnerAvatar } = props;
+  const {
+    chatID,
+    chatName,
+    initialMessages,
+    blockStatus,
+    chatType,
+    partnerUsername,
+    partnerAvatar,
+    initialIsOnline,
+    initialParticipantsCount,
+    initialGroupAvatar
+  } = props;
 
   const clearMessages = useMessageStore((state) => state.clearMessages);
 
@@ -53,6 +66,9 @@ export const ChatWindow = (props: ChatWindowProps) => {
         chatType={chatType}
         partnerAvatar={partnerAvatar}
         partnerUsername={partnerUsername}
+        isOnline={initialIsOnline}
+        initialParticipantsCount={initialParticipantsCount}
+        initialGroupAvatar={initialGroupAvatar}
       />
       <MessageList
         chatType={chatType}
