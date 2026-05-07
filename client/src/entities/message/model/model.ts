@@ -1,6 +1,7 @@
 export interface Sender {
   id: number;
   username: string;
+  avatarURL?: string;
 }
 
 export interface Message {
@@ -14,6 +15,7 @@ export interface Message {
   forwardedFromUserId?: number;
   forwardedFromChatId?: number;
   imageURL?: string;
+  type: 'text' | 'image' | 'system';
 }
 
 export interface MessageApiResponse {

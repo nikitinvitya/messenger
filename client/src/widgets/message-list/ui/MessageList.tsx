@@ -35,8 +35,17 @@ export const MessageList = ({ initialMessages, chatType }: MessageListProps) => 
     const timeGapPrev = prev ? new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime() : Infinity;
     const timeGapNext = next ? new Date(next.createdAt).getTime() - new Date(msg.createdAt).getTime() : Infinity;
 
-    const isFirstOfGroup = !prev || prev.sender?.id !== msg.sender?.id || timeGapPrev > GAP;
-    const isLastOfGroup = !next || next.sender?.id !== msg.sender?.id || timeGapNext > GAP;
+    const isFirstOfGroup =
+      !prev ||
+      prev.sender?.id !== msg.sender?.id ||
+      timeGapPrev > GAP ||
+      prev.type === 'system';
+
+    const isLastOfGroup =
+      !next ||
+      next.sender?.id !== msg.sender?.id ||
+      timeGapNext > GAP ||
+      next.type === 'system';
 
     return { ...msg, isFirstOfGroup, isLastOfGroup };
   });
