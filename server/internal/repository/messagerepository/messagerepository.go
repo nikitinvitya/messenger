@@ -37,7 +37,7 @@ func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Me
     		    					 forwarded_from_chat_id,
                       				 image_url,
                       				 type)
-			   VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
+			   VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 
 	var messageID int
 	err := r.db.QueryRowContext(ctx,
