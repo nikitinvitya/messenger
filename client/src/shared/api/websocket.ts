@@ -4,7 +4,7 @@ import { useChatStore } from '@/entities/chat/model/store';
 import { useUserStore } from '@/entities/user/model/store';
 import {WS_BASE_URL} from "@/shared/constants/api"
 
-type EventType = 'create_message' | 'update_message' | 'delete_message' | 'user_left_chat' | 'chat_created' | 'chat_deleted' | 'user_status';
+type EventType = 'create_message' | 'update_message' | 'delete_message' | 'user_left_chat' | 'chat_created' | 'chat_deleted' | 'user_status' | 'chat_updated';
 
 interface WebSocketEvent {
   type: EventType;
@@ -112,6 +112,11 @@ class WebSocketService {
             break;
           }
 
+          case 'chat_updated': {
+            console.log('Processing chat_updated for:', payload.id);
+            updateChat(payload.id, payload);
+            break;
+          }
           default:
             console.warn('Unknown WebSocket event type:', type);
         }
