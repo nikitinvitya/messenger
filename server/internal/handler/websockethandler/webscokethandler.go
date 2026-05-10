@@ -2,6 +2,7 @@ package websockethandler
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -28,6 +29,35 @@ type WebsocketHandler struct {
 }
 
 func NewWebsocketHandler(hub *websocket.Hub, chatService chatservice.ChatService) *WebsocketHandler {
+	hub.OnMessage = func(userID int, message []byte) {
+		var event websocket.Event
+		if err := json.Unmarshal(message, &event); err != nil {
+			return
+		}
+
+		if event.Type == "read_messages" {
+			payload, ok := event.Payload.(map[string]interface{})
+			if !ok {
+				return
+			}
+
+			chatID := int(payload["chatID"].(float64))
+			messageID := int(payload["messageID"].(float64))
+
+			ctx := context.Background()
+			_ = chatService.UpdateLastReadMessage(ctx, chatID, userID, messageID)
+
+			participants, _ := chatService.ListChatParticipantsID(ctx, chatID)
+
+			hub.SendToUsers(websocket.EventMessagesRead, map[string]interface{}{
+				"chatID":      chatID,
+				"userID":      userID,
+				"messageID":   messageID,
+				"unreadCount": 0,
+			}, participants)
+		}
+	}
+
 	return &WebsocketHandler{
 		hub:         hub,
 		chatService: chatService,
