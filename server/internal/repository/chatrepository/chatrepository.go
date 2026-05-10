@@ -24,6 +24,7 @@ type ChatRepository interface {
 	UpdateChat(ctx context.Context, chatID int, name *string, avatarURL *string) error
 	GetContactIDs(ctx context.Context, userID int) ([]int, error)
 	AddParticipant(ctx context.Context, chatID int, userID int) error
+	UpdateLastReadMessage(ctx context.Context, chatID, userID, messageID int) error
 }
 
 type chatRepository struct {
@@ -78,7 +79,11 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 			c.avatar_url,
 			last_msg.id as last_message_id,
 			last_msg.content as last_message_content,
-			last_msg.created_at as last_message_created_at
+			last_msg.created_at as last_message_created_at,
+			(SELECT COUNT(*) FROM messages m 
+			 WHERE m.chat_id = c.id 
+			 AND m.id > cp.last_read_message_id
+			 AND m.sender_id != $1) as unread_count
 		FROM 
 			chats c
 		JOIN 
@@ -109,6 +114,7 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 		var lastMessageContent sql.NullString
 		var lastMessageCreatedAt sql.NullTime
 		var avatarURL sql.NullString
+		var unreadCount int
 
 		if err = rows.Scan(
 			&chat.ID,
@@ -119,6 +125,7 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 			&lastMessageID,
 			&lastMessageContent,
 			&lastMessageCreatedAt,
+			&unreadCount,
 		); err != nil {
 			return chats, err
 		}
@@ -133,6 +140,8 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 			lastMessage.CreatedAt = lastMessageCreatedAt.Time
 			chat.LastMessage = &lastMessage
 		}
+
+		chat.UnreadCount = unreadCount
 
 		chats = append(chats, &chat)
 	}
@@ -211,7 +220,7 @@ func (r *chatRepository) ListChatParticipantsID(ctx context.Context, chatID int)
 }
 
 func (r *chatRepository) ListChatParticipants(ctx context.Context, chatID int) ([]model.User, error) {
-	sqlReq := `SELECT U.id, U.email, U.username, U.created_at, U.bio, U.avatar_url
+	sqlReq := `SELECT U.id, U.email, U.username, U.created_at, U.bio, U.avatar_url, CP.last_read_message_id
 			   FROM users U
 			   JOIN chat_participants CP ON CP.user_id = U.id
 			   WHERE CP.chat_id = $1`
@@ -232,6 +241,7 @@ func (r *chatRepository) ListChatParticipants(ctx context.Context, chatID int) (
 			&user.CreatedAt,
 			&user.Bio,
 			&user.AvatarURL,
+			&user.LastReadMessageID,
 		); err != nil {
 			return result, err
 		}
@@ -301,5 +311,15 @@ func (r *chatRepository) GetContactIDs(ctx context.Context, userID int) ([]int, 
 func (r *chatRepository) AddParticipant(ctx context.Context, chatID int, userID int) error {
 	sqlReq := `INSERT INTO chat_participants (chat_id, user_id) VALUES ($1, $2)`
 	_, err := r.db.ExecContext(ctx, sqlReq, chatID, userID)
+	return err
+}
+
+func (r *chatRepository) UpdateLastReadMessage(ctx context.Context, chatID, userID, messageID int) error {
+	sqlReq := `
+		UPDATE chat_participants 
+		SET last_read_message_id = $1 
+		WHERE chat_id = $2 AND user_id = $3 AND last_read_message_id < $1`
+
+	_, err := r.db.ExecContext(ctx, sqlReq, messageID, chatID, userID)
 	return err
 }
