@@ -2,9 +2,18 @@ import { api } from './index';
 import { useMessageStore } from '@/entities/message/model/store';
 import { useChatStore } from '@/entities/chat/model/store';
 import { useUserStore } from '@/entities/user/model/store';
-import {WS_BASE_URL} from "@/shared/constants/api"
+import { WS_BASE_URL } from "@/shared/constants/api"
 
-type EventType = 'create_message' | 'update_message' | 'delete_message' | 'user_left_chat' | 'chat_created' | 'chat_deleted' | 'user_status' | 'chat_updated';
+type EventType =
+  | 'create_message'
+  | 'update_message'
+  | 'delete_message'
+  | 'user_left_chat'
+  | 'chat_created'
+  | 'chat_deleted'
+  | 'user_status'
+  | 'chat_updated'
+  | 'messages_read';
 
 interface WebSocketEvent {
   type: EventType;
@@ -20,10 +29,7 @@ class WebSocketService {
   }
 
   public async connect(): Promise<void> {
-    if (this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING) {
-      return;
-    }
-
+    if (this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING) return;
     try {
       const ticket = await this.getTicket();
       const url = `${WS_BASE_URL}/ws/connect?token=${ticket}`;
@@ -48,93 +54,82 @@ class WebSocketService {
       try {
         const parsedEvent: WebSocketEvent = JSON.parse(event.data);
         const { type, payload } = parsedEvent;
-
         const { addMessage, updateMessage, deleteMessage } = useMessageStore.getState();
-        const { removeChat, addChat, updateChat } = useChatStore.getState();
+        const { removeChat, addChat, updateChat, updateParticipantStatus } = useChatStore.getState();
         const { user: currentUser } = useUserStore.getState();
 
+        const chatId = Number(payload.chatId || payload.chatID || payload.id);
+
         switch (type) {
-          case 'create_message':
-            updateChat(payload.chatId, { lastMessage: payload });
+          case 'create_message': {
+            const freshChats = useChatStore.getState().chats;
+            const targetChat = freshChats.find(c => c.id === chatId);
+            const isCurrentChat = window.location.pathname === `/chats/${chatId}`;
 
-            if (window.location.pathname === `/chats/${payload.chatId}`) {
+            const currentUnread = typeof targetChat?.unreadCount === 'number' ? targetChat.unreadCount : 0;
+
+            updateChat(chatId, {
+              lastMessage: payload,
+              unreadCount: isCurrentChat ? 0 : currentUnread + 1
+            });
+
+            if (isCurrentChat) {
               addMessage(payload);
+              this.sendReadMessages(chatId, payload.id);
             }
             break;
+          }
 
-          case 'update_message':
-            updateMessage(payload);
+          case 'messages_read': {
+            const freshChats = useChatStore.getState().chats;
+            const targetChat = freshChats.find(c => c.id === chatId);
+
+            if (Number(payload.userID) === currentUser?.id) {
+              updateChat(chatId, { unreadCount: 0 });
+            }
+
+            if (targetChat && targetChat.participants) {
+              const updatedParticipants = targetChat.participants.map(p =>
+                p.id === Number(payload.userID) ? { ...p, lastReadMessageID: Number(payload.messageID) } : p
+              );
+              updateChat(chatId, { participants: updatedParticipants });
+            }
             break;
+          }
 
-          case 'delete_message':
-            deleteMessage({ id: payload.id });
-            break;
-
-          case 'chat_created':
-            addChat(payload);
-            break;
-
+          case 'update_message': updateMessage(payload); break;
+          case 'delete_message': deleteMessage({ id: payload.id }); break;
+          case 'chat_created': addChat(payload); break;
+          case 'user_status': updateParticipantStatus(payload.userId, payload.online); break;
+          case 'chat_updated': updateChat(chatId, payload); break;
           case 'user_left_chat': {
-            const eventUserId = payload.userId;
-            const eventChatId = payload.chatId;
-
-            const { removeChat, updateChat, chats } = useChatStore.getState();
-            const { user: currentUser } = useUserStore.getState();
-
-            if (currentUser && eventUserId === currentUser.id) {
-              removeChat(eventChatId);
-              if (window.location.pathname === `/chats/${eventChatId}`) {
-                window.location.href = '/chats';
-              }
+            if (currentUser && payload.userId === currentUser.id) {
+              removeChat(chatId);
+              if (window.location.pathname === `/chats/${chatId}`) window.location.href = '/chats';
             } else {
-              const targetChat = chats.find(c => c.id === eventChatId);
-
-              if (targetChat && targetChat.participants) {
-                const updatedParticipants = targetChat.participants.filter(
-                  p => p.id !== eventUserId
-                );
-
-                updateChat(eventChatId, { participants: updatedParticipants });
-              }
-
-            }
-            break;
-          }
-
-          case 'chat_deleted':
-            const deletedChatId = payload.chatId || payload.chatID;
-
-            if (deletedChatId) {
-              removeChat(deletedChatId);
-              if (window.location.pathname === `/chats/${deletedChatId}`) {
-                window.location.href = '/chats';
+              const freshChats = useChatStore.getState().chats;
+              const targetChat = freshChats.find(c => c.id === chatId);
+              if (targetChat?.participants) {
+                const updated = targetChat.participants.filter(p => p.id !== payload.userId);
+                updateChat(chatId, { participants: updated });
               }
             }
             break;
-
-          case 'user_status': {
-            const { userId, online } = payload;
-
-            useChatStore.getState().updateParticipantStatus(userId, online);
-
-            const currentUser = useUserStore.getState().user;
-            if (currentUser?.id === userId) {
-              useUserStore.getState().updateStatus(online);
-            }
-            break;
           }
-
-          case 'chat_updated': {
-            updateChat(payload.id, payload);
-            break;
-          }
-          default:
-            console.warn('Unknown WebSocket event type:', type);
         }
       } catch (error) {
         console.error('Error processing WS message:', error);
       }
     };
+  }
+
+  public sendReadMessages(chatID: number, messageID: number) {
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify({
+        type: 'read_messages',
+        payload: { chatID, messageID }
+      }));
+    }
   }
 }
 
