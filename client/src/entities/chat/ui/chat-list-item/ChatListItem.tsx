@@ -1,7 +1,7 @@
 'use client'
 
 import classNames from 'classnames';
-import { Box, Text, Group, Stack } from "@mantine/core";
+import { Box, Text } from "@mantine/core";
 import { useUserStore } from "@/entities/user";
 import { AppLink } from "@/shared/ui/AppLink/ui/AppLink";
 import { formatDate } from "@/shared/lib/formatDate";
@@ -36,9 +36,7 @@ export const ChatListItem = ({ chatInfo, className }: ChatItemProps) => {
   };
 
   const avatarSrc = chatInfo.type === 'private' ? partner?.avatarURL : chatInfo.avatarURL;
-
   const isOnline = chatInfo.type === 'private' ? !!partner?.isOnline : false;
-
   const chatName = getChatName();
 
   return (
@@ -51,20 +49,23 @@ export const ChatListItem = ({ chatInfo, className }: ChatItemProps) => {
           size={50}
         />
 
-        <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
-          <Group justify="space-between" wrap="nowrap">
-            <Text className={cls.chatName} truncate="end">
-              {chatName}
-            </Text>
-            <Text className={cls.time}>
-              {formatDate(chatInfo.lastMessage.createdAt)}
-            </Text>
-          </Group>
+        <Text className={cls.chatName} truncate="end">
+          {chatName}
+        </Text>
 
-          <Text className={cls.lastMessage} truncate="end">
-            {chatInfo.lastMessage.content}
-          </Text>
-        </Stack>
+        <Text className={cls.time}>
+          {formatDate(chatInfo.lastMessage.createdAt)}
+        </Text>
+
+        <Text className={cls.lastMessage} truncate="end">
+          {chatInfo.lastMessage.content ? chatInfo.lastMessage.content : 'Photo'}
+        </Text>
+
+        {chatInfo.unreadCount > 0 && (
+          <Box className={cls.unreadBadge}>
+            {chatInfo.unreadCount}
+          </Box>
+        )}
       </Box>
     </AppLink>
   );
