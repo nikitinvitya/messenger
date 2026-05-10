@@ -32,6 +32,8 @@ type ChatService interface {
 	GetChatFullInfo(ctx context.Context, userID, chatID int) (*dto.ChatResponse, error)
 	GetContactIDs(ctx context.Context, userID int) ([]int, error)
 	AddParticipant(ctx context.Context, requesterID, chatID, targetUserID int) error
+	UpdateLastReadMessage(ctx context.Context, chatID, userID, messageID int) error
+	ListChatParticipantsID(ctx context.Context, chatID int) ([]int, error)
 }
 
 type chatService struct {
@@ -349,4 +351,12 @@ func (s *chatService) AddParticipant(ctx context.Context, requesterID, chatID, t
 	go s.sendSystemMessage(context.Background(), chatID, targetUserID, "joined the chat", participantIDs)
 
 	return nil
+}
+
+func (s *chatService) UpdateLastReadMessage(ctx context.Context, chatID, userID, messageID int) error {
+	return s.repo.UpdateLastReadMessage(ctx, chatID, userID, messageID)
+}
+
+func (s *chatService) ListChatParticipantsID(ctx context.Context, chatID int) ([]int, error) {
+	return s.repo.ListChatParticipantsID(ctx, chatID)
 }
