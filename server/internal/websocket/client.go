@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"log/slog"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -37,13 +36,12 @@ func (c *Client) ReadPump() {
 	for {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				slog.Error("unexpected close error", "error", err)
-			}
 			break
 		}
 
-		slog.Info("message from client", "message", string(message))
+		if c.Hub.OnMessage != nil {
+			c.Hub.OnMessage(c.UserID, message)
+		}
 	}
 }
 
@@ -66,11 +64,7 @@ func (c *Client) WritePump() {
 			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				return
 			}
-
-			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				return
-			}
-
+			
 		case <-ticker.C:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {

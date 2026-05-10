@@ -6,6 +6,7 @@ import (
 )
 
 type EventType string
+type MessageHandler func(userID int, message []byte)
 
 const (
 	EventMessageCreated EventType = "create_message"
@@ -16,6 +17,7 @@ const (
 	EventChatUpdated    EventType = "chat_updated"
 	EventChatDeleted    EventType = "chat_deleted"
 	EventUserStatus     EventType = "user_status"
+	EventMessagesRead   EventType = "messages_read"
 )
 
 type Event struct {
@@ -40,6 +42,7 @@ type Hub struct {
 	Register      chan *Client
 	Unregister    chan *Client
 	StatusUpdates chan StatusUpdate
+	OnMessage     MessageHandler
 }
 
 func NewHub() *Hub {
