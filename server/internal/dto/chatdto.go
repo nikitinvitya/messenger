@@ -20,6 +20,7 @@ type ChatResponse struct {
 	Participants []model.User `json:"participants"`
 	LastMessage  *LastMessage `json:"lastMessage,omitempty"`
 	AvatarURL    *string      `json:"avatarURL"`
+	UnreadCount  int          `json:"unreadCount"`
 }
 
 type UserLeftPayload struct {
