@@ -10,13 +10,18 @@ export interface LastMessage {
   createdAt: string,
 }
 
+export interface ChatParticipant extends User {
+  lastReadMessageID?: number;
+}
+
 export interface Chat {
   id: number,
   type: 'private' | 'group'
   createdAt: string,
   name?: string;
-  participants: User[],
+  participants: ChatParticipant[],
   lastMessage?: LastMessage;
   avatarURL?: string;
+  unreadCount: number;
 }
 
