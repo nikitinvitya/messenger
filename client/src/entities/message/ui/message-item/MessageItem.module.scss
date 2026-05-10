@@ -169,8 +169,34 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: flex-end;
-  gap: 8px;
+  gap: 4px;
   padding: 2px 8px 4px 8px;
+}
+
+.statusWrapper {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ticks {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: #868e96;
+  font-family: monospace;
+  letter-spacing: -2px;
+  display: inline-block;
+  width: 16px;
+  text-align: right;
+  flex-shrink: 0;
+
+  &.read {
+    color: #4caf50;
+  }
 }
 
 .messageContent {
@@ -275,8 +301,5 @@
   text-align: center;
   line-height: 1.4;
   backdrop-filter: blur(2px);
-  a {
-    text-decoration: none;
-    color: #4a4a4a;
-  }
+  a { text-decoration: none; color: #4a4a4a; }
 }

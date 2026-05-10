@@ -1,11 +1,13 @@
 'use client'
 
+import { useMemo } from 'react';
 import classNames from 'classnames';
 import cls from './MessageItem.module.scss'
 import {Box, Text, Modal, ActionIcon, Group, Menu} from "@mantine/core";
 import {Message} from "@/entities/message";
 import {useUserStore} from "@/entities/user";
 import {Chat} from "@/entities/chat";
+import {useChatStore} from "@/entities/chat/model/store";
 import {BASE_URL} from "@/shared/constants/api";
 import {Image as MantineImage} from "@mantine/core";
 import {useDisclosure, useMediaQuery} from '@mantine/hooks';
@@ -36,6 +38,18 @@ export const MessageItem = (props: MessageItemProps) => {
   const {messages, setEditingMessage, setReplyingToMessage, setForwardingMessage} = useMessageStore();
   const currentUser = useUserStore((state) => state.user);
   const isCurrentUserMessage = currentUser?.id === messageInfo.sender.id;
+
+  const chat = useChatStore((state) =>
+    state.chats.find(c => c.id === messageInfo.chatId)
+  );
+
+  const isRead = useMemo(() => {
+    if (!isCurrentUserMessage || !chat || !chat.participants) return false;
+
+    return chat.participants
+      .filter(p => p.id !== currentUser?.id)
+      .some(p => (p.lastReadMessageID || 0) >= messageInfo.id);
+  }, [chat, messageInfo.id, isCurrentUserMessage, currentUser?.id]);
 
   if (messageInfo.type === 'system') {
     return (
@@ -148,7 +162,14 @@ export const MessageItem = (props: MessageItemProps) => {
 
       <Box className={cls.contentAndTime}>
         {messageInfo.content && <Text className={cls.messageContent}>{messageInfo.content}</Text>}
-        <Text className={cls.messageTime}>{formatTime(messageInfo.createdAt)}</Text>
+        <Box className={cls.statusWrapper}>
+          <Text className={cls.messageTime}>{formatTime(messageInfo.createdAt)}</Text>
+          {isCurrentUserMessage && (
+            <div className={classNames(cls.ticks, { [cls.read]: isRead })}>
+              {isRead ? '✓✓' : '✓'}
+            </div>
+          )}
+        </Box>
       </Box>
     </Box>
   );
