@@ -2,7 +2,8 @@ import { api } from './index';
 import { useMessageStore } from '@/entities/message/model/store';
 import { useChatStore } from '@/entities/chat/model/store';
 import { useUserStore } from '@/entities/user/model/store';
-import { WS_BASE_URL } from "@/shared/constants/api"
+import { WS_BASE_URL, BASE_URL } from "@/shared/constants/api"
+import { showBrowserNotification } from "@/shared/lib/showNotification";
 
 type EventType =
   | 'create_message'
@@ -59,6 +60,7 @@ class WebSocketService {
         const { user: currentUser } = useUserStore.getState();
 
         const chatId = Number(payload.chatId || payload.chatID || payload.id);
+        const SERVER_URL = BASE_URL!.replace('/api/v1', '');
 
         switch (type) {
           case 'create_message': {
@@ -76,6 +78,30 @@ class WebSocketService {
             if (isCurrentChat) {
               addMessage(payload);
               this.sendReadMessages(chatId, payload.id);
+            }
+
+            if (payload.sender.id !== currentUser?.id) {
+              if (document.visibilityState !== 'visible' || !isCurrentChat) {
+                const iconUrl = payload.sender.avatarURL ? `${SERVER_URL}${payload.sender.avatarURL}` : undefined;
+
+                let title = payload.sender.username;
+                let body = payload.content || "Sent an image";
+
+                if (targetChat?.type === 'group') {
+                  title = targetChat.name || "Group";
+                  body = `${payload.sender.username}: ${body}`;
+                }
+
+                showBrowserNotification({
+                  title,
+                  body,
+                  icon: iconUrl,
+                  onClick: () => {
+                    window.focus();
+                    window.location.href = `/chats/${chatId}`;
+                  }
+                });
+              }
             }
             break;
           }
@@ -124,11 +150,25 @@ class WebSocketService {
   }
 
   public sendReadMessages(chatID: number, messageID: number) {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({
-        type: 'read_messages',
-        payload: { chatID, messageID }
-      }));
+    const send = () => {
+      if (this.socket?.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({
+          type: 'read_messages',
+          payload: { chatID, messageID }
+        }));
+        return true;
+      }
+      return false;
+    };
+
+    if (!send()) {
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        if (send() || attempts > 5) {
+          clearInterval(interval);
+        }
+      }, 500);
     }
   }
 }
