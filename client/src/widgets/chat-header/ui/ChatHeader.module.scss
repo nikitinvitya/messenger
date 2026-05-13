@@ -7,8 +7,8 @@
   padding: 0 10px;
   z-index: 10;
   background-color: var(--header-color);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 2px 8px #00000026;
+  border-bottom: 1px solid var(--header-border);
+  box-shadow: var(--shadow-header);
 
   .leftSection {
     display: flex;
@@ -31,7 +31,12 @@
     border-radius: 8px;
     transition: background-color 0.2s ease;
     max-width: 100%;
-    color: black;
+    color: var(--text-strong);
+    text-decoration: none;
+
+    &:hover {
+      background-color: var(--hover-row);
+    }
   }
 
   .chatName {
@@ -39,6 +44,18 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: inherit;
+  }
+
+  .statusOnline {
+    color: var(--accent-tg-blue);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .statusMuted {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
   }
 
   .menuWrapper {

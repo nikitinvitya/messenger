@@ -15,12 +15,12 @@
   column-gap: 12px;
   row-gap: 2px;
   padding: 8px 12px;
-  border-bottom: 1px solid #f1f1f1;
+  border-bottom: 1px solid var(--border-list);
   cursor: pointer;
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--hover-row);
   }
 
   & > :first-child {
@@ -33,7 +33,7 @@
     grid-row: 1;
     font: var(--font-m);
     font-weight: 600;
-    color: #000;
+    color: var(--text-strong);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -42,7 +42,7 @@
   .time {
     grid-column: 3;
     grid-row: 1;
-    color: #828282;
+    color: var(--text-secondary);
     font-size: 0.75rem;
     justify-self: end;
     white-space: nowrap;
@@ -52,7 +52,7 @@
     grid-column: 2;
     grid-row: 2;
     font-size: 0.9rem;
-    color: #969696;
+    color: var(--text-tertiary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -63,7 +63,7 @@
     grid-column: 3;
     grid-row: 2;
     justify-self: end;
-    background-color: #4caf50;
+    background-color: var(--online-dot);
     color: white;
     font-size: 11px;
     font-weight: 700;

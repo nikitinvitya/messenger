@@ -10,7 +10,7 @@
   flex: 1;
   height: 100%;
   position: relative;
-  background-color: #fff;
+  background-color: var(--main-content-bg);
   z-index: 5;
 
   @media (max-width: 768px) {
