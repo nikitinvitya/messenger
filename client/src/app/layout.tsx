@@ -1,10 +1,11 @@
 import '@mantine/core/styles.css';
 import type {Metadata} from 'next';
-import {ColorSchemeScript} from '@mantine/core';
-import React from "react";
-import '@/app/styles/index.scss'
-import {AppProvider} from "@/app/providers";
+import { ColorSchemeScript } from '@mantine/core';
+import React from 'react';
+import '@/app/styles/index.scss';
+import { AppProvider } from '@/app/providers';
 import { roboto } from '@/app/styles/fonts/fonts';
+import { COLOR_SCHEME_STORAGE_KEY } from '@/shared/constants/color-scheme';
 
 export const metadata: Metadata = {
   title: 'Messenger',
@@ -19,7 +20,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={roboto.variable}>
     <head>
-      <ColorSchemeScript/>
+      <ColorSchemeScript
+        defaultColorScheme="light"
+        localStorageKey={COLOR_SCHEME_STORAGE_KEY}
+      />
       <title>Messenger</title>
     </head>
     <body>
