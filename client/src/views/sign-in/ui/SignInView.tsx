@@ -10,7 +10,9 @@ export const SignInView = (props: SignInViewProps) => {
   return (
     <div className={classNames(cls.signInView)}>
       <h2>Login</h2>
-      <SignInForm/>
+      <div className={cls.formShell}>
+        <SignInForm />
+      </div>
     </div>
   );
 };
