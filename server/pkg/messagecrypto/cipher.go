@@ -94,3 +94,17 @@ func (c *Cipher) Decrypt(encoded string) (string, error) {
 
 	return string(plaintext), nil
 }
+
+func (c *Cipher) EncryptContent(content string) (string, error) {
+	if content == "" {
+		return "", nil
+	}
+	return c.Encrypt(content)
+}
+
+func (c *Cipher) DecryptContent(content string) (string, error) {
+	if content == "" {
+		return "", nil
+	}
+	return c.Decrypt(content)
+}

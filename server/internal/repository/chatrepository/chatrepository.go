@@ -8,6 +8,7 @@ import (
 
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/model"
+	"github.com/nikitinvitya/messenger/pkg/messagecrypto"
 )
 
 type ChatRepository interface {
@@ -28,12 +29,14 @@ type ChatRepository interface {
 }
 
 type chatRepository struct {
-	db *sql.DB
+	db     *sql.DB
+	cipher *messagecrypto.Cipher
 }
 
-func NewChatRepository(db *sql.DB) ChatRepository {
+func NewChatRepository(db *sql.DB, cipher *messagecrypto.Cipher) ChatRepository {
 	return &chatRepository{
-		db: db,
+		db:     db,
+		cipher: cipher,
 	}
 }
 
@@ -136,8 +139,14 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 
 		if lastMessageID.Valid {
 			lastMessage.ID = int(lastMessageID.Int64)
-			lastMessage.Content = lastMessageContent.String
 			lastMessage.CreatedAt = lastMessageCreatedAt.Time
+			if lastMessageContent.Valid {
+				decrypted, err := r.cipher.DecryptContent(lastMessageContent.String)
+				if err != nil {
+					return chats, fmt.Errorf("decrypt last message %d content: %w", lastMessage.ID, err)
+				}
+				lastMessage.Content = decrypted
+			}
 			chat.LastMessage = &lastMessage
 		}
 

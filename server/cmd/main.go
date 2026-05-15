@@ -85,7 +85,7 @@ func main() {
 	slog.Info("Websocket Hub started")
 
 	userRepo := userrepository.NewUserRepository(db)
-	chatRepo := chatrepository.NewChatRepository(db)
+	chatRepo := chatrepository.NewChatRepository(db, messageCipher)
 	messageRepo := messagerepository.NewMessageRepository(db, messageCipher)
 	blocklistRepo := blocklistrepository.NewBlocklistRepository(db)
 

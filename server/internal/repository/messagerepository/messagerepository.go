@@ -31,20 +31,6 @@ func NewMessageRepository(db *sql.DB, cipher *messagecrypto.Cipher) MessageRepos
 	}
 }
 
-func (r *messageRepository) encryptContent(content string) (string, error) {
-	if content == "" {
-		return "", nil
-	}
-	return r.cipher.Encrypt(content)
-}
-
-func (r *messageRepository) decryptContent(content string) (string, error) {
-	if content == "" {
-		return "", nil
-	}
-	return r.cipher.Decrypt(content)
-}
-
 func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Message) (int, error) {
 	sqlReq := `INSERT INTO messages (chat_id,
     		    					 sender_id,
@@ -56,7 +42,7 @@ func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Me
                       				 type)
 			   VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 
-	encryptedContent, err := r.encryptContent(message.Content)
+	encryptedContent, err := r.cipher.EncryptContent(message.Content)
 	if err != nil {
 		return 0, fmt.Errorf("encrypt message content: %w", err)
 	}
@@ -131,7 +117,7 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 			return messagesResponse, err
 		}
 
-		message.Content, err = r.decryptContent(encryptedContent)
+		message.Content, err = r.cipher.DecryptContent(encryptedContent)
 		if err != nil {
 			return messagesResponse, fmt.Errorf("decrypt message %d content: %w", message.ID, err)
 		}
@@ -148,7 +134,7 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 }
 
 func (r *messageRepository) UpdateMessage(ctx context.Context, messageID int, newContent string) error {
-	encryptedContent, err := r.encryptContent(newContent)
+	encryptedContent, err := r.cipher.EncryptContent(newContent)
 	if err != nil {
 		return fmt.Errorf("encrypt message content: %w", err)
 	}
@@ -202,7 +188,7 @@ func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (
 		return nil, fmt.Errorf("failed to get message by id: %w", err)
 	}
 
-	message.Content, err = r.decryptContent(encryptedContent)
+	message.Content, err = r.cipher.DecryptContent(encryptedContent)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt message %d content: %w", message.ID, err)
 	}
