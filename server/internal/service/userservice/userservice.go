@@ -2,11 +2,18 @@ package userservice
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/userrepository"
 	"github.com/nikitinvitya/messenger/internal/websocket"
+	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrUserNotFound           = errors.New("user not found")
+	ErrInvalidCurrentPassword = errors.New("invalid current password")
 )
 
 type UserService interface {
@@ -14,6 +21,7 @@ type UserService interface {
 	GetProfileByName(ctx context.Context, username string) (*model.User, error)
 	SearchUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error)
 	UpdateProfile(ctx context.Context, userID int, username string, bio *string, avatarURL *string) (*model.User, error)
+	ChangePassword(ctx context.Context, userID int, currentPassword, newPassword string) error
 }
 
 type userService struct {
@@ -84,4 +92,32 @@ func (s *userService) UpdateProfile(ctx context.Context, userID int, username st
 	}
 
 	return s.GetProfileByID(ctx, userID)
+}
+
+func (s *userService) ChangePassword(ctx context.Context, userID int, currentPassword, newPassword string) error {
+	passwordHash, err := s.repo.GetPasswordHashByUserID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
+	if err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(currentPassword)); err != nil {
+		return ErrInvalidCurrentPassword
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	if err = s.repo.UpdatePassword(ctx, userID, string(newHash)); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
+	return nil
 }
