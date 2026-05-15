@@ -15,6 +15,8 @@ type UserRepository interface {
 	GetUserByID(ctx context.Context, id int) (*model.User, error)
 	FindUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error)
 	UpdateUserProfile(ctx context.Context, user *model.User) error
+	GetPasswordHashByUserID(ctx context.Context, userID int) (string, error)
+	UpdatePassword(ctx context.Context, userID int, passwordHash string) error
 }
 
 type userRepository struct {
@@ -122,6 +124,41 @@ func (r *userRepository) UpdateUserProfile(ctx context.Context, user *model.User
 			   WHERE id = $4`
 
 	result, err := r.db.ExecContext(ctx, sqlReq, user.Bio, user.AvatarURL, user.Username, user.ID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (r *userRepository) GetPasswordHashByUserID(ctx context.Context, userID int) (string, error) {
+	sqlReq := `SELECT password_hash FROM users WHERE id = $1`
+
+	var passwordHash string
+	err := r.db.QueryRowContext(ctx, sqlReq, userID).Scan(&passwordHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", sql.ErrNoRows
+		}
+		return "", err
+	}
+
+	return passwordHash, nil
+}
+
+func (r *userRepository) UpdatePassword(ctx context.Context, userID int, passwordHash string) error {
+	sqlReq := `UPDATE users SET password_hash = $1 WHERE id = $2`
+
+	result, err := r.db.ExecContext(ctx, sqlReq, passwordHash, userID)
 	if err != nil {
 		return err
 	}
