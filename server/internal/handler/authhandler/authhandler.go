@@ -87,8 +87,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Expires:  expirationTime,
 		HttpOnly: true,
 		Path:     "/",
-		// Secure:   true,
-		// SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	responsePayload := map[string]string{"message": "Login successful"}
@@ -102,6 +102,8 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
 		Path:     "/",
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	handler.SuccessResponse(w, http.StatusNoContent, nil)
