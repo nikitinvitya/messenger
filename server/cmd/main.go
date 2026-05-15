@@ -33,6 +33,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/service/messageservice"
 	"github.com/nikitinvitya/messenger/internal/service/userservice"
 	"github.com/nikitinvitya/messenger/internal/websocket"
+	"github.com/nikitinvitya/messenger/pkg/messagecrypto"
 )
 
 func main() {
@@ -47,6 +48,14 @@ func main() {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Fatal("FATAL: JWT_SECRET is not set")
+	}
+	messageEncryptionKey := os.Getenv("MESSAGE_ENCRYPTION_KEY")
+	if messageEncryptionKey == "" {
+		log.Fatal("FATAL: MESSAGE_ENCRYPTION_KEY is not set")
+	}
+	messageCipher, err := messagecrypto.NewCipher(messageEncryptionKey)
+	if err != nil {
+		log.Fatalf("FATAL: invalid MESSAGE_ENCRYPTION_KEY: %v", err)
 	}
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -77,7 +86,7 @@ func main() {
 
 	userRepo := userrepository.NewUserRepository(db)
 	chatRepo := chatrepository.NewChatRepository(db)
-	messageRepo := messagerepository.NewMessageRepository(db)
+	messageRepo := messagerepository.NewMessageRepository(db, messageCipher)
 	blocklistRepo := blocklistrepository.NewBlocklistRepository(db)
 
 	authService := authservice.NewAuthService(userRepo, jwtSecret)

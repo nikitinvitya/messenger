@@ -8,6 +8,7 @@ import (
 
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/model"
+	"github.com/nikitinvitya/messenger/pkg/messagecrypto"
 )
 
 type MessageRepository interface {
@@ -19,13 +20,29 @@ type MessageRepository interface {
 }
 
 type messageRepository struct {
-	db *sql.DB
+	db     *sql.DB
+	cipher *messagecrypto.Cipher
 }
 
-func NewMessageRepository(db *sql.DB) MessageRepository {
+func NewMessageRepository(db *sql.DB, cipher *messagecrypto.Cipher) MessageRepository {
 	return &messageRepository{
-		db: db,
+		db:     db,
+		cipher: cipher,
 	}
+}
+
+func (r *messageRepository) encryptContent(content string) (string, error) {
+	if content == "" {
+		return "", nil
+	}
+	return r.cipher.Encrypt(content)
+}
+
+func (r *messageRepository) decryptContent(content string) (string, error) {
+	if content == "" {
+		return "", nil
+	}
+	return r.cipher.Decrypt(content)
 }
 
 func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Message) (int, error) {
@@ -39,12 +56,17 @@ func (r *messageRepository) CreateMessage(ctx context.Context, message *model.Me
                       				 type)
 			   VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 
+	encryptedContent, err := r.encryptContent(message.Content)
+	if err != nil {
+		return 0, fmt.Errorf("encrypt message content: %w", err)
+	}
+
 	var messageID int
-	err := r.db.QueryRowContext(ctx,
+	err = r.db.QueryRowContext(ctx,
 		sqlReq,
 		message.ChatID,
 		message.SenderID,
-		message.Content,
+		encryptedContent,
 		message.ReplyToMessageID,
 		message.ForwardedFromUserID,
 		message.ForwardedFromChatID,
@@ -90,10 +112,11 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 		var message dto.MessageResponse
 		var senderInfo dto.SenderInfo
 
+		var encryptedContent string
 		if err = rows.Scan(
 			&message.ID,
 			&message.ChatID,
-			&message.Content,
+			&encryptedContent,
 			&message.CreatedAt,
 			&message.EditedAt,
 			&message.ReplyToMessageID,
@@ -108,6 +131,11 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 			return messagesResponse, err
 		}
 
+		message.Content, err = r.decryptContent(encryptedContent)
+		if err != nil {
+			return messagesResponse, fmt.Errorf("decrypt message %d content: %w", message.ID, err)
+		}
+
 		message.Sender = &senderInfo
 		messagesResponse = append(messagesResponse, &message)
 	}
@@ -120,11 +148,16 @@ func (r *messageRepository) ListMessagesInChat(ctx context.Context, chatID int, 
 }
 
 func (r *messageRepository) UpdateMessage(ctx context.Context, messageID int, newContent string) error {
+	encryptedContent, err := r.encryptContent(newContent)
+	if err != nil {
+		return fmt.Errorf("encrypt message content: %w", err)
+	}
+
 	sqlReq := `UPDATE messages
                SET content = $1, edited_at = NOW()
                WHERE id = $2`
 
-	sqlResponse, err := r.db.ExecContext(ctx, sqlReq, newContent, messageID)
+	sqlResponse, err := r.db.ExecContext(ctx, sqlReq, encryptedContent, messageID)
 	if err != nil {
 		return err
 	}
@@ -147,11 +180,12 @@ func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (
 			   WHERE id = $1`
 
 	var message model.Message
+	var encryptedContent string
 	err := r.db.QueryRowContext(ctx, sqlReq, messageID).Scan(
 		&message.ID,
 		&message.SenderID,
 		&message.ChatID,
-		&message.Content,
+		&encryptedContent,
 		&message.CreatedAt,
 		&message.EditedAt,
 		&message.ReplyToMessageID,
@@ -166,6 +200,11 @@ func (r *messageRepository) GetMessageByID(ctx context.Context, messageID int) (
 		}
 
 		return nil, fmt.Errorf("failed to get message by id: %w", err)
+	}
+
+	message.Content, err = r.decryptContent(encryptedContent)
+	if err != nil {
+		return nil, fmt.Errorf("decrypt message %d content: %w", message.ID, err)
 	}
 
 	return &message, nil
