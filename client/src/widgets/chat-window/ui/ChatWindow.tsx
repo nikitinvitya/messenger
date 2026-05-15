@@ -2,12 +2,12 @@
 
 import { useEffect } from 'react';
 import classNames from 'classnames';
-import { Box, Button, Text, useComputedColorScheme } from '@mantine/core';
+import { Box, useComputedColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { type Message, MessageApiResponse, useMessageStore } from '@/entities/message';
 import { ChatHeader } from '@/widgets/chat-header';
 import { MessageList } from '@/widgets/message-list';
-import { SendMessageForm } from '@/features/send-message';
+import { ChatFooter } from '@/widgets/chat-footer';
 import { GroupInfo } from '@/widgets/group-info';
 import wallpaperLight from '@/shared/assets/ChatWallpaper.jpg';
 import wallpaperDark from '@/shared/assets/ChatWallpaperDark.jpg';
@@ -23,6 +23,7 @@ interface ChatWindowProps {
   chatType: Chat["type"];
   partnerAvatar: string | undefined;
   partnerUsername: string | undefined;
+  partnerUserID?: number;
   initialIsOnline: boolean;
   initialParticipantsCount: number;
   initialGroupAvatar?: string;
@@ -40,6 +41,7 @@ export const ChatWindow = (props: ChatWindowProps) => {
     chatType,
     partnerUsername,
     partnerAvatar,
+    partnerUserID,
     initialIsOnline,
     initialParticipantsCount,
     initialGroupAvatar
@@ -47,23 +49,14 @@ export const ChatWindow = (props: ChatWindowProps) => {
 
   const [infoOpened, { toggle: toggleInfo, close: closeInfo }] = useDisclosure(false);
   const clearMessages = useMessageStore((state) => state.clearMessages);
+  const setBlockStatus = useMessageStore((state) => state.setBlockStatus);
 
   useEffect(() => {
+    setBlockStatus(blockStatus);
     return () => {
       clearMessages();
     };
-  }, [chatID, clearMessages]);
-
-  const renderFooter = () => {
-    switch (blockStatus) {
-      case "recipient_blocked":
-        return <Button>Unblock</Button>
-      case "sender_blocked":
-        return <Text>You are blocked</Text>
-      default:
-        return <SendMessageForm chatID={chatID} key={chatID} />
-    }
-  }
+  }, [chatID, blockStatus, setBlockStatus, clearMessages]);
 
   return (
     <Box className={classNames(cls.chatWindow)}>
@@ -82,6 +75,7 @@ export const ChatWindow = (props: ChatWindowProps) => {
           chatType={chatType}
           partnerAvatar={partnerAvatar}
           partnerUsername={partnerUsername}
+          partnerUserID={partnerUserID}
           isOnline={initialIsOnline}
           initialParticipantsCount={initialParticipantsCount}
           initialGroupAvatar={initialGroupAvatar}
@@ -94,7 +88,7 @@ export const ChatWindow = (props: ChatWindowProps) => {
         </Box>
 
         <Box className={cls.footerContainer}>
-          {renderFooter()}
+          <ChatFooter chatID={chatID} partnerUserID={partnerUserID} />
         </Box>
       </Box>
 

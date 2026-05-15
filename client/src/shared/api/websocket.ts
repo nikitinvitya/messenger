@@ -4,6 +4,8 @@ import { useChatStore } from '@/entities/chat/model/store';
 import { useUserStore } from '@/entities/user/model/store';
 import { WS_BASE_URL, BACKEND_ORIGIN } from '@/shared/constants/api';
 import { showBrowserNotification } from "@/shared/lib/showNotification";
+import { blockStatusForUser, findPrivateChatIdWithUser } from "@/shared/lib/blockStatus";
+import { AppRoutes } from "@/shared/config/routes";
 
 type EventType =
   | 'create_message'
@@ -14,7 +16,9 @@ type EventType =
   | 'chat_deleted'
   | 'user_status'
   | 'chat_updated'
-  | 'messages_read';
+  | 'messages_read'
+  | 'user_blocked'
+  | 'user_unblocked';
 
 interface WebSocketEvent {
   type: EventType;
@@ -55,7 +59,7 @@ class WebSocketService {
       try {
         const parsedEvent: WebSocketEvent = JSON.parse(event.data);
         const { type, payload } = parsedEvent;
-        const { addMessage, updateMessage, deleteMessage } = useMessageStore.getState();
+        const { addMessage, updateMessage, deleteMessage, setBlockStatus } = useMessageStore.getState();
         const { removeChat, addChat, updateChat, updateParticipantStatus } = useChatStore.getState();
         const { user: currentUser } = useUserStore.getState();
 
@@ -134,13 +138,46 @@ class WebSocketService {
           case 'user_left_chat': {
             if (currentUser && payload.userId === currentUser.id) {
               removeChat(chatId);
-              if (window.location.pathname === `/chats/${chatId}`) window.location.href = '/chats';
+              if (window.location.pathname === `/chats/${chatId}`) window.location.href = AppRoutes.chats;
             } else {
               const freshChats = useChatStore.getState().chats;
               const targetChat = freshChats.find(c => c.id === chatId);
               if (targetChat?.participants) {
                 const updated = targetChat.participants.filter(p => p.id !== payload.userId);
                 updateChat(chatId, { participants: updated });
+              }
+            }
+            break;
+          }
+
+          case 'chat_deleted': {
+            const deletedChatId = Number(payload.chatId ?? payload.chatID);
+            if (!deletedChatId) break;
+            removeChat(deletedChatId);
+            if (window.location.pathname === `/chats/${deletedChatId}`) {
+              window.location.href = AppRoutes.chats;
+            }
+            break;
+          }
+
+          case 'user_blocked':
+          case 'user_unblocked': {
+            if (!currentUser) break;
+            const blockerId = Number(payload.blockerId);
+            const blockedId = Number(payload.blockedId);
+            const activeChatId = Number(window.location.pathname.split('/').pop());
+            const chats = useChatStore.getState().chats;
+
+            const relatedChatId =
+              findPrivateChatIdWithUser(chats, blockerId === currentUser.id ? blockedId : blockerId) ??
+              (Number.isFinite(activeChatId) ? activeChatId : undefined);
+
+            if (relatedChatId && window.location.pathname === `/chats/${relatedChatId}`) {
+              if (type === 'user_unblocked') {
+                setBlockStatus('none');
+              } else {
+                const status = blockStatusForUser(currentUser.id, blockerId, blockedId);
+                if (status) setBlockStatus(status);
               }
             }
             break;

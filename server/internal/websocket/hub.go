@@ -18,6 +18,8 @@ const (
 	EventChatDeleted    EventType = "chat_deleted"
 	EventUserStatus     EventType = "user_status"
 	EventMessagesRead   EventType = "messages_read"
+	EventUserBlocked    EventType = "user_blocked"
+	EventUserUnblocked  EventType = "user_unblocked"
 )
 
 type Event struct {

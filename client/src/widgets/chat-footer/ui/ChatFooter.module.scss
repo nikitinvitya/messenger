@@ -1,0 +1,32 @@
+.footer {
+  width: 100%;
+}
+
+.blockedState {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background-color: var(--send-footer-bg);
+  border-top: 1px solid var(--send-footer-border);
+
+  @media (max-width: 768px) {
+    padding: 24px 16px 16px;
+    background: var(--send-mobile-gradient);
+    backdrop-filter: blur(1px);
+  }
+}
+
+.blockedText {
+  font: var(--font-s);
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.unblockBtn {
+  min-width: 140px;
+}

@@ -92,7 +92,7 @@ func main() {
 	authService := authservice.NewAuthService(userRepo, jwtSecret)
 	userService := userservice.NewUserService(userRepo, hub)
 	chatService := chatservice.NewChatService(chatRepo, hub, messageRepo, userRepo)
-	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo)
+	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo, hub)
 	messageService := messageservice.NewMessageService(chatRepo, messageRepo, userRepo, hub, blocklistService)
 
 	authHandler := authhandler.NewAuthHandler(authService)

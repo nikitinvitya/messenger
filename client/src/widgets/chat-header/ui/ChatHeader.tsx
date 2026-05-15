@@ -9,9 +9,10 @@ import { Chat } from "@/entities/chat";
 import { leaveChat } from "@/entities/chat/api/leaveChat";
 import { useChatStore } from "@/entities/chat/model/store";
 import { useUserStore } from "@/entities/user";
+import { blockUser, unblockUser } from "@/entities/blocklist";
+import { useMessageStore } from "@/entities/message";
 import { AppLink } from "@/shared/ui/AppLink/ui/AppLink";
 import { AppRoutes } from "@/shared/config/routes";
-import { websocketService } from "@/shared/api/websocket";
 import { AppAvatar } from "@/shared/ui/AppAvatar/ui/AppAvatar";
 
 import ArrowIcon from '@/shared/assets/ArrowIcon.svg';
@@ -25,6 +26,7 @@ interface ChatHeaderProps {
   chatType: Chat["type"];
   partnerAvatar?: string;
   partnerUsername?: string;
+  partnerUserID?: number;
   isOnline?: boolean;
   initialParticipantsCount?: number;
   initialGroupAvatar?: string;
@@ -37,6 +39,7 @@ export const ChatHeader = ({
                              chatType,
                              partnerAvatar: initialPartnerAvatar,
                              partnerUsername,
+                             partnerUserID: partnerUserIDProp,
                              isOnline: initialIsOnline,
                              initialParticipantsCount,
                              initialGroupAvatar,
@@ -44,6 +47,8 @@ export const ChatHeader = ({
                            }: ChatHeaderProps) => {
   const router = useRouter();
   const removeChat = useChatStore((state) => state.removeChat);
+  const blockStatus = useMessageStore((state) => state.blockStatus);
+  const setBlockStatus = useMessageStore((state) => state.setBlockStatus);
 
   const { user: currentUser } = useUserStore();
 
@@ -69,14 +74,38 @@ export const ChatHeader = ({
     ? chatFromStore.participants.length
     : (initialParticipantsCount ?? 0);
 
+  const partnerUserID =
+    partnerUserIDProp ??
+    partnerInStore?.id ??
+    chatFromStore?.participants?.find((p) => p.id !== currentUser?.id)?.id;
+
   const handleLeave = async () => {
     try {
       await leaveChat(chatID);
       removeChat(chatID);
-      websocketService.disconnect();
       router.push(AppRoutes.chats);
     } catch (error) {
       console.error('Failed to leave chat:', error);
+    }
+  };
+
+  const handleBlock = async () => {
+    if (!partnerUserID) return;
+    try {
+      await blockUser(partnerUserID);
+      setBlockStatus('recipient_blocked');
+    } catch (error) {
+      console.error('Failed to block user:', error);
+    }
+  };
+
+  const handleUnblockFromMenu = async () => {
+    if (!partnerUserID) return;
+    try {
+      await unblockUser(partnerUserID);
+      setBlockStatus('none');
+    } catch (error) {
+      console.error('Failed to unblock user:', error);
     }
   };
 
@@ -138,6 +167,16 @@ export const ChatHeader = ({
           </Menu.Target>
 
           <Menu.Dropdown>
+            {chatType === 'private' && partnerUserID && (
+              <>
+                {blockStatus === 'recipient_blocked' ? (
+                  <Menu.Item onClick={handleUnblockFromMenu}>Unblock user</Menu.Item>
+                ) : (
+                  <Menu.Item onClick={handleBlock}>Block user</Menu.Item>
+                )}
+                <Menu.Divider />
+              </>
+            )}
             <Menu.Item color="red" onClick={handleLeave}>
               {chatType === 'group' ? 'Leave group' : 'Delete chat'}
             </Menu.Item>

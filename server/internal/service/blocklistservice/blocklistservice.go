@@ -3,7 +3,9 @@ package blocklistservice
 import (
 	"context"
 	"errors"
+
 	"github.com/nikitinvitya/messenger/internal/repository/blocklistrepository"
+	"github.com/nikitinvitya/messenger/internal/websocket"
 )
 
 var (
@@ -18,11 +20,13 @@ type BlocklistService interface {
 
 type blocklistService struct {
 	blocklistRepo blocklistrepository.BlocklistRepository
+	hub           *websocket.Hub
 }
 
-func NewBlocklistService(blocklistRepo blocklistrepository.BlocklistRepository) BlocklistService {
+func NewBlocklistService(blocklistRepo blocklistrepository.BlocklistRepository, hub *websocket.Hub) BlocklistService {
 	return &blocklistService{
 		blocklistRepo: blocklistRepo,
+		hub:           hub,
 	}
 }
 
@@ -31,11 +35,29 @@ func (s *blocklistService) Block(ctx context.Context, blockerID, blockedID int) 
 		return ErrCannotBlockSelf
 	}
 
-	return s.blocklistRepo.Block(ctx, blockerID, blockedID)
+	if err := s.blocklistRepo.Block(ctx, blockerID, blockedID); err != nil {
+		return err
+	}
+
+	s.hub.SendToUsers(websocket.EventUserBlocked, map[string]int{
+		"blockerId": blockerID,
+		"blockedId": blockedID,
+	}, []int{blockerID, blockedID})
+
+	return nil
 }
 
 func (s *blocklistService) Unblock(ctx context.Context, blockerID, blockedID int) error {
-	return s.blocklistRepo.Unblock(ctx, blockerID, blockedID)
+	if err := s.blocklistRepo.Unblock(ctx, blockerID, blockedID); err != nil {
+		return err
+	}
+
+	s.hub.SendToUsers(websocket.EventUserUnblocked, map[string]int{
+		"blockerId": blockerID,
+		"blockedId": blockedID,
+	}, []int{blockerID, blockedID})
+
+	return nil
 }
 
 func (s *blocklistService) CheckBlock(ctx context.Context, blockerID, blockedID int) (bool, error) {
