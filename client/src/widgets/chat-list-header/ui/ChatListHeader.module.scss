@@ -2,7 +2,7 @@
   height: var(--navbar-height);
   width: 100%;
   background-color: var(--header-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-header);
   padding: 5px 10px;
   display: grid;
   grid-template-columns: 50px 1fr;
@@ -28,7 +28,7 @@
   min-width: unset;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.07);
+    background-color: var(--hover-strong);
   }
 }
 

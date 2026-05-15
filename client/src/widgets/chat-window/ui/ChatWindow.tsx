@@ -2,14 +2,15 @@
 
 import { useEffect } from 'react';
 import classNames from 'classnames';
-import { Box, Button, Text } from '@mantine/core';
+import { Box, Button, Text, useComputedColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { type Message, MessageApiResponse, useMessageStore } from '@/entities/message';
 import { ChatHeader } from '@/widgets/chat-header';
 import { MessageList } from '@/widgets/message-list';
 import { SendMessageForm } from '@/features/send-message';
 import { GroupInfo } from '@/widgets/group-info';
-import wallpaper from '@/shared/assets/ChatWallpaper.jpg';
+import wallpaperLight from '@/shared/assets/ChatWallpaper.jpg';
+import wallpaperDark from '@/shared/assets/ChatWallpaperDark.jpg';
 import { type Chat } from '@/entities/chat';
 import cls from './ChatWindow.module.scss';
 import Image from "next/image";
@@ -28,6 +29,9 @@ interface ChatWindowProps {
 }
 
 export const ChatWindow = (props: ChatWindowProps) => {
+  const colorScheme = useComputedColorScheme('light');
+  const wallpaper = colorScheme === 'dark' ? wallpaperDark : wallpaperLight;
+
   const {
     chatID,
     chatName,

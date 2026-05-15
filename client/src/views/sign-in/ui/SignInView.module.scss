@@ -6,4 +6,38 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  background-color: var(--app-bg);
+  color: var(--text-strong);
+
+  h2 {
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-strong);
+  }
+
+  a {
+    color: var(--accent-tg-blue);
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.formShell {
+  width: 100%;
+  max-width: 400px;
+  padding: 1.75rem;
+  border-radius: 12px;
+  background-color: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+
+  [data-mantine-color-scheme='dark'] & {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
 }

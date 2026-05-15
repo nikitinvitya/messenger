@@ -96,7 +96,7 @@ export const ChatHeader = ({
           {headerAvatar}
           <Box className={cls.textInfo}>
             <Text className={cls.chatName}>{displayChatName}</Text>
-            {liveIsOnline && <Text className={cls.statusText} c="blue">online</Text>}
+            {liveIsOnline && <Text className={cls.statusOnline}>online</Text>}
           </Box>
         </AppLink>
       );
@@ -107,7 +107,7 @@ export const ChatHeader = ({
         {headerAvatar}
         <Box className={cls.textInfo}>
           <Text className={cls.chatName}>{displayChatName}</Text>
-          <Text className={cls.statusText} c="dimmed">
+          <Text className={cls.statusMuted}>
             {participantsCount} participants
           </Text>
         </Box>

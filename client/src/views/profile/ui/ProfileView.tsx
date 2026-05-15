@@ -1,7 +1,20 @@
 'use client'
 
 import { useState, useRef } from 'react';
-import { Modal, Text, Stack, ActionIcon, Box, TextInput, Textarea, Button, Group } from '@mantine/core';
+import {
+  Modal,
+  Text,
+  Stack,
+  ActionIcon,
+  Box,
+  TextInput,
+  Textarea,
+  Button,
+  Group,
+  SegmentedControl,
+  useComputedColorScheme,
+  useMantineColorScheme,
+} from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import { User } from '@/entities/user/model/model';
 import { BASE_URL } from '@/shared/constants/api';
@@ -22,6 +35,8 @@ interface ProfileViewProps {
 
 export const ProfileView = ({ targetUser }: ProfileViewProps) => {
   const router = useRouter();
+  const computedScheme = useComputedColorScheme('light');
+  const { setColorScheme } = useMantineColorScheme();
   const { user: currentUser, setUser, logout } = useUserStore();
   const isMyProfile = currentUser?.id === targetUser.id;
 
@@ -186,6 +201,24 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
             <Group grow mt="md" gap="xs">
               <Button size="xs" onClick={handleSave} loading={isLoading}>Save</Button>
             </Group>
+          )}
+
+          {isMyProfile && (
+            <Box mt="md">
+              <Text size="xs" c="dimmed" fw={600} mb={6}>
+                Appearance
+              </Text>
+              <SegmentedControl
+                fullWidth
+                size="xs"
+                value={computedScheme}
+                onChange={(value) => setColorScheme(value as 'light' | 'dark')}
+                data={[
+                  { value: 'light', label: 'Light' },
+                  { value: 'dark', label: 'Dark' },
+                ]}
+              />
+            </Box>
           )}
         </Box>
         {!isMyProfile && (

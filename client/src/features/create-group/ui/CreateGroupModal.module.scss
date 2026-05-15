@@ -52,9 +52,9 @@
   left: 0;
   right: 0;
   z-index: 100;
-  background-color: white;
+  background-color: var(--dropdown-bg);
   border-radius: 8px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--dropdown-shadow);
   max-height: 200px;
   overflow-y: auto;
 }

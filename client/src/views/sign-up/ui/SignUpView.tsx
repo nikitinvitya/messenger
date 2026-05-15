@@ -10,7 +10,9 @@ export const SignUpView = (props: SignUpViewProps) => {
   return (
     <div className={classNames(cls.signUpView)}>
       <h2>Create account</h2>
-      <SignUpForm />
+      <div className={cls.formShell}>
+        <SignUpForm />
+      </div>
     </div>
   );
 };
