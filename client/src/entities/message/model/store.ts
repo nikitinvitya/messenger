@@ -1,8 +1,11 @@
 import { create } from 'zustand';
-import type {Message} from './model';
+import type { Message, MessageApiResponse } from './model';
+
+export type BlockStatus = MessageApiResponse['blockStatus'];
 
 interface MessageState {
   messages: Message[];
+  blockStatus: BlockStatus;
   editingMessage: Message | null;
   replyingToMessage: Message | null;
   forwardingMessage: Message | null;
@@ -10,6 +13,7 @@ interface MessageState {
 
 interface MessageActions {
   setInitialMessages: (messages: Message[]) => void;
+  setBlockStatus: (status: BlockStatus) => void;
   addMessage: (message: Message) => void;
   updateMessage: (updatedMessage: Message) => void;
   deleteMessage: (payload: { id: number }) => void;
@@ -21,11 +25,14 @@ interface MessageActions {
 
 export const useMessageStore = create<MessageState & MessageActions>((set) => ({
   messages: [],
+  blockStatus: 'none',
   editingMessage: null,
   replyingToMessage: null,
   forwardingMessage: null,
 
   setInitialMessages: (messages) => set({ messages }),
+
+  setBlockStatus: (status) => set({ blockStatus: status }),
 
   addMessage: (newMessage) => set((state) => ({
     messages: state.messages.find(m => m.id === newMessage.id)
@@ -43,7 +50,7 @@ export const useMessageStore = create<MessageState & MessageActions>((set) => ({
     messages: state.messages.filter(message => message.id !== payload.id),
   })),
 
-  clearMessages: () => set({ messages: [] }),
+  clearMessages: () => set({ messages: [], blockStatus: 'none' }),
 
   setEditingMessage: (message) => set({ editingMessage: message, replyingToMessage: null }),
 
