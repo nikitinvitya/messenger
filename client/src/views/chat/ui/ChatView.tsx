@@ -23,6 +23,7 @@ export async function ChatView({ chatID }: ChatViewProps) {
     let chatName = 'Chat';
     let partnerAvatar = undefined;
     let partnerUsername = undefined;
+    let partnerUserID: number | undefined;
     let partnerIsOnline = false;
 
     if (chat.type === 'group' && chat.name) {
@@ -33,6 +34,7 @@ export async function ChatView({ chatID }: ChatViewProps) {
         chatName = partner.username;
         partnerAvatar = partner.avatarURL;
         partnerUsername = partner.username;
+        partnerUserID = partner.id;
         partnerIsOnline = !!partner.isOnline;
       } else {
         chatName = "Saved Messages";
@@ -48,6 +50,7 @@ export async function ChatView({ chatID }: ChatViewProps) {
           chatName={chatName}
           chatType={chat.type}
           partnerUsername={partnerUsername}
+          partnerUserID={partnerUserID}
           partnerAvatar={partnerAvatar}
           initialIsOnline={partnerIsOnline}
           initialParticipantsCount={chat.participants.length}
