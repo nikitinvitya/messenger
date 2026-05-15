@@ -1,6 +1,7 @@
 package userhandler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -124,6 +125,45 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	handler.SuccessResponse(w, http.StatusOK, updatedUser)
+}
+
+func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to get claims subject", nil)
+		return
+	}
+
+	var requestBody struct {
+		CurrentPassword string `json:"currentPassword" validate:"required,min=8"`
+		NewPassword     string `json:"newPassword" validate:"required,min=8"`
+	}
+
+	if !helper.ValidateRequest(w, r, &requestBody) {
+		return
+	}
+
+	if err = h.service.ChangePassword(r.Context(), userID, requestBody.CurrentPassword, requestBody.NewPassword); err != nil {
+		switch {
+		case errors.Is(err, userservice.ErrInvalidCurrentPassword):
+			handler.ErrorCodeResponse(w, http.StatusUnauthorized, "Current password is incorrect", "INVALID_CURRENT_PASSWORD")
+			return
+		case errors.Is(err, userservice.ErrUserNotFound):
+			handler.ClientErrorResponse(w, http.StatusNotFound, "User not found")
+			return
+		default:
+			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to change password", err)
+			return
+		}
+	}
+
+	handler.SuccessResponse(w, http.StatusNoContent, nil)
 }
 
 func (h *UserHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
