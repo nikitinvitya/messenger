@@ -3,7 +3,6 @@ package authhandler
 import (
 	"errors"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -55,7 +54,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	successPayload := map[string]string{"message": "User created successfully. Please verify your email."}
+	successPayload := map[string]string{"message": "User created successfully. You can log in now."}
 	handler.SuccessResponse(w, http.StatusCreated, successPayload)
 }
 
@@ -72,10 +71,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	token, expirationTime, err := h.service.Login(r.Context(), requestBody.Identifier, requestBody.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, authservice.EmailNotVerified):
-			handler.ErrorCodeResponse(w, http.StatusForbidden, "Please verify your email first", "EMAIL_NOT_VERIFIED")
-			return
-
 		case errors.Is(err, authservice.InvalidCredentials):
 			handler.ErrorCodeResponse(w, http.StatusUnauthorized, "Invalid username or password", "INVALID_CREDENTIALS")
 			return
@@ -132,41 +127,4 @@ func (h *AuthHandler) GetWSTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handler.SuccessResponse(w, http.StatusOK, map[string]string{"ticket": ticket})
-}
-
-func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		handler.ClientErrorResponse(w, http.StatusBadRequest, "Verification token is required")
-		return
-	}
-
-	if err := h.service.VerifyEmail(r.Context(), token); err != nil {
-		handler.ClientErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:3000"
-	}
-
-	http.Redirect(w, r, frontendURL+"/sign-in?verified=true", http.StatusSeeOther)
-}
-
-func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request) {
-	var requestBody struct {
-		Identifier string `json:"identifier" validate:"required,min=3"`
-	}
-
-	if !helper.ValidateRequest(w, r, &requestBody) {
-		return
-	}
-
-	if err := h.service.ResendVerification(r.Context(), requestBody.Identifier); err != nil {
-		handler.ClientErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	handler.SuccessResponse(w, http.StatusOK, map[string]string{"message": "Verification email resent"})
 }

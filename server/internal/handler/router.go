@@ -83,8 +83,6 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 			r.Post("/register", h.Auth.Register)
 			r.Post("/login", h.Auth.Login)
 			r.Post("/logout", h.Auth.Logout)
-			r.Get("/verify", h.Auth.VerifyEmail)
-			r.Post("/resend-verification", h.Auth.ResendVerification)
 		})
 
 		r.Group(func(r chi.Router) {

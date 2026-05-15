@@ -74,10 +74,9 @@ export function SignUpForm() {
   if (isRegistered) {
     return (
       <Stack align="center" className={cls.signUpForm} gap="md">
-        <Title order={3}>Confirm your email</Title>
+        <Title order={3}>Account created</Title>
         <Text ta="center">
-          We've sent a verification link to <b>{form.values.email}</b>.
-          Please check your inbox to activate your account.
+          You can log in with <b>{form.values.username}</b> or <b>{form.values.email}</b>.
         </Text>
         <AppLink href={AppRoutes.login}>
           <Button variant="outline" fullWidth>Go to Login</Button>

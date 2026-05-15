@@ -33,6 +33,10 @@ func SuccessResponse(w http.ResponseWriter, statusCode int, payload interface{})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
+	if statusCode == http.StatusNoContent || payload == nil {
+		return
+	}
+
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		slog.Error("failed to write success response", "error", err)
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	"github.com/nikitinvitya/messenger/internal/model"
 )
@@ -16,10 +15,6 @@ type UserRepository interface {
 	GetUserByID(ctx context.Context, id int) (*model.User, error)
 	FindUsersByUsername(ctx context.Context, userID int, username string) ([]model.User, error)
 	UpdateUserProfile(ctx context.Context, user *model.User) error
-	CreateVerificationToken(ctx context.Context, userID int, token string, expiresAt time.Time) error
-	GetUserByVerificationToken(ctx context.Context, token string) (int, error)
-	MarkUserAsVerified(ctx context.Context, userID int) error
-	DeleteVerificationToken(ctx context.Context, token string) error
 }
 
 type userRepository struct {
@@ -33,10 +28,10 @@ func NewUserRepository(db *sql.DB) UserRepository {
 }
 
 func (r *userRepository) CreateUser(ctx context.Context, user *model.User) (int, error) {
-	sqlReq := `INSERT INTO users (email, username, password_hash) VALUES ($1, $2, $3) RETURNING id`
+	sqlReq := `INSERT INTO users (email, username, password_hash, is_verified) VALUES ($1, $2, $3, $4) RETURNING id`
 
 	var insertedID int
-	err := r.db.QueryRowContext(ctx, sqlReq, user.Email, user.Username, user.PasswordHash).Scan(&insertedID)
+	err := r.db.QueryRowContext(ctx, sqlReq, user.Email, user.Username, user.PasswordHash, user.IsVerified).Scan(&insertedID)
 	if err != nil {
 		return 0, err
 	}
@@ -141,29 +136,4 @@ func (r *userRepository) UpdateUserProfile(ctx context.Context, user *model.User
 	}
 
 	return nil
-}
-
-func (r *userRepository) CreateVerificationToken(ctx context.Context, userID int, token string, expiresAt time.Time) error {
-	query := `INSERT INTO verification_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`
-	_, err := r.db.ExecContext(ctx, query, userID, token, expiresAt)
-	return err
-}
-
-func (r *userRepository) GetUserByVerificationToken(ctx context.Context, token string) (int, error) {
-	query := `SELECT user_id FROM verification_tokens WHERE token = $1 AND expires_at > NOW()`
-	var userID int
-	err := r.db.QueryRowContext(ctx, query, token).Scan(&userID)
-	return userID, err
-}
-
-func (r *userRepository) MarkUserAsVerified(ctx context.Context, userID int) error {
-	query := `UPDATE users SET is_verified = TRUE WHERE id = $1`
-	_, err := r.db.ExecContext(ctx, query, userID)
-	return err
-}
-
-func (r *userRepository) DeleteVerificationToken(ctx context.Context, token string) error {
-	query := `DELETE FROM verification_tokens WHERE token = $1`
-	_, err := r.db.ExecContext(ctx, query, token)
-	return err
 }

@@ -3,7 +3,7 @@
 import { useForm } from '@mantine/form';
 import { Box, Button, Group, PasswordInput, TextInput, Text, Alert } from '@mantine/core';
 import { z } from 'zod';
-import { signIn, resendVerification } from '../model/api';
+import { signIn } from '../model/api';
 import { useRouter } from 'next/navigation';
 import { useState } from "react";
 import cls from './SignInForm.module.scss'
@@ -21,9 +21,6 @@ type SignInFormData = z.infer<typeof signInSchema>;
 export function SignInForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [isResent, setIsResent] = useState(false);
 
   const fetchUser = useUserStore((state) => state.fetchUser)
 
@@ -52,34 +49,15 @@ export function SignInForm() {
     }
   });
 
-  const handleResend = async () => {
-    setResendLoading(true);
-    try {
-      await resendVerification(form.values.identifier);
-      setIsResent(true);
-    } catch (err) {
-      form.setErrors({ root: 'Failed to send email. Make sure it is a valid email address.' });
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
   const handleSubmit = async (values: SignInFormData) => {
     setIsLoading(true);
-    setErrorCode(null);
-    setIsResent(false);
     try {
       await signIn(values);
       await fetchUser();
       router.push(AppRoutes.chats);
     } catch (err: any) {
       const data = err.response?.data;
-      if (data?.code) {
-        setErrorCode(data.code);
-        form.setErrors({ root: data.error });
-      } else {
-        form.setErrors({ root: 'Invalid credentials or server error' });
-      }
+      form.setErrors({ root: data?.error || 'Invalid credentials or server error' });
     } finally {
       setIsLoading(false);
     }
@@ -90,18 +68,6 @@ export function SignInForm() {
       {form.errors.root && (
         <Alert color="red" variant="light" mb="md">
           <Text size="sm">{form.errors.root}</Text>
-          {errorCode === 'EMAIL_NOT_VERIFIED' && (
-            <Button
-              variant="subtle"
-              color="red"
-              size="xs"
-              mt="xs"
-              onClick={handleResend}
-              loading={resendLoading}
-            >
-              {isResent ? 'Verification email sent!' : 'Resend verification email'}
-            </Button>
-          )}
         </Alert>
       )}
 
