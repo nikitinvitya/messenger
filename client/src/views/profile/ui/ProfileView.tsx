@@ -17,7 +17,7 @@ import {
 } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import { User } from '@/entities/user/model/model';
-import { BASE_URL } from '@/shared/constants/api';
+import { BACKEND_ORIGIN } from '@/shared/constants/api';
 import { useUserStore } from '@/entities/user';
 import { updateUserInfo } from '@/entities/user/api/updateUserInfo';
 import { uploadMedia } from '@/entities/message/api/uploadMedia';
@@ -50,7 +50,7 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const SERVER_URL = BASE_URL!.replace('/api/v1', '');
+  const mediaOrigin = BACKEND_ORIGIN;
 
   const handleClose = () => router.back();
 

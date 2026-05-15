@@ -1,19 +1,17 @@
-import { api } from "@/shared/api";
-import { User } from "../model/model";
-import { cookies } from "next/headers";
-import { JWT_TOKEN_KEY } from "@/shared/constants/cookie";
+import { api } from '@/shared/api';
+import { User } from '../model/model';
+import { getServerApiBaseUrl, getServerApiCookieHeader } from '@/shared/lib/server-api-base';
 
 export const getUserByUsername = async (username: string): Promise<User> => {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(JWT_TOKEN_KEY);
-
-  if (!token) {
+  const cookieHeader = await getServerApiCookieHeader();
+  if (!cookieHeader) {
     throw new Error('Unauthorized: No token provided');
   }
 
   const response = await api.get<User>(`/users/info/${username}`, {
+    baseURL: await getServerApiBaseUrl(),
     headers: {
-      Cookie: `${token.name}=${token.value}`,
+      Cookie: cookieHeader,
     },
   });
 

@@ -8,7 +8,7 @@ import {Message} from "@/entities/message";
 import {useUserStore} from "@/entities/user";
 import {Chat} from "@/entities/chat";
 import {useChatStore} from "@/entities/chat/model/store";
-import {BASE_URL} from "@/shared/constants/api";
+import { BACKEND_ORIGIN } from '@/shared/constants/api';
 import {Image as MantineImage} from "@mantine/core";
 import {useDisclosure, useMediaQuery} from '@mantine/hooks';
 import {useMessageStore} from "../../model/store";
@@ -84,8 +84,10 @@ export const MessageItem = (props: MessageItemProps) => {
   const isVisibleAvatar = isLastOfGroup && showAvatarGutter;
 
   const formatTime = (time: string) => new Date(time).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
-  const SERVER_URL = BASE_URL!.replace('/api/v1', '');
-  const fullImageUrl = `${SERVER_URL}${messageInfo.imageURL}`;
+  const fullImageUrl =
+    messageInfo.imageURL && BACKEND_ORIGIN
+      ? `${BACKEND_ORIGIN}${messageInfo.imageURL}`
+      : messageInfo.imageURL ?? '';
 
   const handleDelete = async () => {
     try {

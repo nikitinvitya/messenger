@@ -2,7 +2,7 @@
 
 import { Avatar, Indicator } from '@mantine/core';
 import { getAvatarColor } from '@/shared/lib/getAvatarColor';
-import { BASE_URL } from '@/shared/constants/api';
+import { BACKEND_ORIGIN } from '@/shared/constants/api';
 
 interface AppAvatarProps {
   src?: string | null;
@@ -13,7 +13,7 @@ interface AppAvatarProps {
 }
 
 export const AppAvatar = ({ src, name, size = 40, isOnline = false, radius = "xl" }: AppAvatarProps) => {
-  const SERVER_URL = BASE_URL!.replace('/api/v1', '');
+  const mediaOrigin = BACKEND_ORIGIN;
   const avatarColor = getAvatarColor(name);
   const firstLetter = name.charAt(0).toUpperCase();
 
@@ -27,7 +27,7 @@ export const AppAvatar = ({ src, name, size = 40, isOnline = false, radius = "xl
       withBorder
     >
       <Avatar
-        src={src ? `${SERVER_URL}${src}` : null}
+        src={src && mediaOrigin ? `${mediaOrigin}${src}` : null}
         size={size}
         radius={radius}
         styles={{

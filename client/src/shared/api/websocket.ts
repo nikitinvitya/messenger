@@ -2,7 +2,7 @@ import { api } from './index';
 import { useMessageStore } from '@/entities/message/model/store';
 import { useChatStore } from '@/entities/chat/model/store';
 import { useUserStore } from '@/entities/user/model/store';
-import { WS_BASE_URL, BASE_URL } from "@/shared/constants/api"
+import { WS_BASE_URL, BACKEND_ORIGIN } from '@/shared/constants/api';
 import { showBrowserNotification } from "@/shared/lib/showNotification";
 
 type EventType =
@@ -60,7 +60,7 @@ class WebSocketService {
         const { user: currentUser } = useUserStore.getState();
 
         const chatId = Number(payload.chatId || payload.chatID || payload.id);
-        const SERVER_URL = BASE_URL!.replace('/api/v1', '');
+        const mediaOrigin = BACKEND_ORIGIN;
 
         switch (type) {
           case 'create_message': {
@@ -82,7 +82,10 @@ class WebSocketService {
 
             if (payload.sender.id !== currentUser?.id) {
               if (document.visibilityState !== 'visible' || !isCurrentChat) {
-                const iconUrl = payload.sender.avatarURL ? `${SERVER_URL}${payload.sender.avatarURL}` : undefined;
+                const iconUrl =
+                  payload.sender.avatarURL && mediaOrigin
+                    ? `${mediaOrigin}${payload.sender.avatarURL}`
+                    : undefined;
 
                 let title = payload.sender.username;
                 let body = payload.content || "Sent an image";

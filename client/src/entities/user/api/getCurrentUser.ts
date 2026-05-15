@@ -1,16 +1,15 @@
-import { cookies } from 'next/headers';
 import { api } from '@/shared/api';
-import { JWT_TOKEN_KEY } from '@/shared/constants/cookie';
-import {User} from "@/entities/user";
+import { User } from '@/entities/user';
+import { getServerApiBaseUrl, getServerApiCookieHeader } from '@/shared/lib/server-api-base';
 
 export const getCurrentUser = async (): Promise<User> => {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(JWT_TOKEN_KEY);
-  if (!token) throw new Error('Not authenticated');
+  const cookieHeader = await getServerApiCookieHeader();
+  if (!cookieHeader) throw new Error('Not authenticated');
 
   const response = await api.get<User>(`/users/me`, {
+    baseURL: await getServerApiBaseUrl(),
     headers: {
-      Cookie: `${token.name}=${token.value}`,
+      Cookie: cookieHeader,
     },
   });
 

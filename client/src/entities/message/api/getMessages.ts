@@ -1,22 +1,23 @@
 import { api } from '@/shared/api';
-import { cookies } from 'next/headers';
-import { JWT_TOKEN_KEY } from '@/shared/constants/cookie';
-import {MessageApiResponse} from "@/entities/message";
+import { MessageApiResponse } from '@/entities/message';
+import { getServerApiBaseUrl, getServerApiCookieHeader } from '@/shared/lib/server-api-base';
 
 export const getMessages = async (chatID: number, page: number = 1): Promise<MessageApiResponse> => {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(JWT_TOKEN_KEY);
-
-  if (!token) {
+  const cookieHeader = await getServerApiCookieHeader();
+  if (!cookieHeader) {
     throw new Error('Not authenticated');
   }
 
   const response = await api.get(`/chats/${chatID}/messages`, {
+    baseURL: await getServerApiBaseUrl(),
     params: { page, pageSize: 50 },
     headers: {
-      Cookie: `${token.name}=${token.value}`,
+      Cookie: cookieHeader,
     },
   });
 
-  return response.data;
+  const data = response.data ?? {};
+  const messages = Array.isArray(data.messages) ? data.messages : [];
+  const blockStatus = data.blockStatus ?? 'none';
+  return { messages, blockStatus } as MessageApiResponse;
 };

@@ -14,7 +14,7 @@ import XIcon from "@/shared/assets/XIcon.svg"
 import EditIcon from "@/shared/assets/EditIcon.svg"
 import ReplyIcon from "@/shared/assets/ReplyIcon.svg"
 import cls from "./SendMessageForm.module.scss"
-import { BASE_URL } from "@/shared/constants/api";
+import { BACKEND_ORIGIN } from '@/shared/constants/api';
 
 interface SendMessageFormProps {
   className?: string;
@@ -84,7 +84,7 @@ export const SendMessageForm = ({ chatID }: SendMessageFormProps) => {
     }
   }
 
-  const SERVER_URL = BASE_URL!.replace("/api/v1", "");
+  const mediaOrigin = BACKEND_ORIGIN;
 
   return (
     <Box className={cls.container}>
@@ -114,7 +114,7 @@ export const SendMessageForm = ({ chatID }: SendMessageFormProps) => {
       {imageUrl && (
         <Box className={cls.previewWrapper}>
           <div className={cls.previewItem}>
-            <img src={`${SERVER_URL}${imageUrl}`} alt="preview" />
+            <img src={mediaOrigin ? `${mediaOrigin}${imageUrl}` : imageUrl} alt="preview" />
             <ActionIcon className={cls.removeBtn} onClick={() => setImageUrl(null)} variant="filled" color="red" size="xs">
               <Image src={XIcon.src} width={10} height={10} alt="remove" />
             </ActionIcon>

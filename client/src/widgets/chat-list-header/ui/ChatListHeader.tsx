@@ -7,7 +7,7 @@ import {SearchUser} from "@/features/search-user";
 import ArrowIcon from '@/shared/assets/ArrowIcon.svg'
 import Image from "next/image"
 import {getAvatarColor} from "@/shared/lib/getAvatarColor";
-import {BASE_URL} from "@/shared/constants/api";
+import { BACKEND_ORIGIN } from '@/shared/constants/api';
 import {useUserStore} from "@/entities/user";
 import {AppRoutes} from "@/shared/config/routes";
 import {AppLink} from "@/shared/ui/AppLink/ui/AppLink";
@@ -21,7 +21,7 @@ interface ChatListHeaderProps {
 
 export const ChatListHeader = ({isActiveSearch, setIsActiveSearch, setSearchResults}: ChatListHeaderProps) => {
   const { user } = useUserStore();
-  const SERVER_URL = BASE_URL!.replace('/api/v1', '');
+  const mediaOrigin = BACKEND_ORIGIN;
   const firstLetter = user?.username?.charAt(0).toUpperCase() || '?';
   const avatarColor = getAvatarColor(user?.username || '');
 
@@ -43,7 +43,7 @@ export const ChatListHeader = ({isActiveSearch, setIsActiveSearch, setSearchResu
             className={cls.avatarLink}
           >
             <Avatar
-              src={user?.avatarURL ? `${SERVER_URL}${user.avatarURL}` : null}
+              src={user?.avatarURL && mediaOrigin ? `${mediaOrigin}${user.avatarURL}` : null}
               radius="xl"
               size="md"
               styles={{
