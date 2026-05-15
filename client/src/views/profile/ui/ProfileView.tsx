@@ -11,7 +11,7 @@ import {
   Textarea,
   Button,
   Group,
-  SegmentedControl,
+  Menu,
   useComputedColorScheme,
   useMantineColorScheme,
 } from '@mantine/core';
@@ -22,11 +22,15 @@ import { useUserStore } from '@/entities/user';
 import { updateUserInfo } from '@/entities/user/api/updateUserInfo';
 import { uploadMedia } from '@/entities/message/api/uploadMedia';
 import { createChat } from '@/entities/chat/api/createChat';
+import { ChangePasswordModal } from '@/features/change-password';
 import { AppAvatar } from "@/shared/ui/AppAvatar/ui/AppAvatar";
 import Image from 'next/image';
 import XIcon from '@/shared/assets/XIcon.svg';
 import EditIcon from '@/shared/assets/EditIcon.svg';
-import LogoutIcon from "@/shared/assets/LogoutIcon.svg"
+import LogoutIcon from "@/shared/assets/LogoutIcon.svg";
+import VerticalDotsIcon from '@/shared/assets/VerticalDotsIcon.svg';
+import LightThemeIcon from '@/shared/assets/LightThemeIcon.svg';
+import DarkThemeIcon from '@/shared/assets/DarkThemeIcon.svg';
 import cls from './ProfileView.module.scss';
 
 interface ProfileViewProps {
@@ -48,6 +52,9 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
   const [avatarURL, setAvatarURL] = useState(displayUser.avatarURL || '');
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
+  const isDark = computedScheme === 'dark';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaOrigin = BACKEND_ORIGIN;
@@ -57,6 +64,10 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
   const handleLogout = async () => {
     await logout();
     router.push('/sign-in');
+  };
+
+  const handleToggleTheme = () => {
+    setColorScheme(isDark ? 'light' : 'dark');
   };
 
   const handleSendMessage = async () => {
@@ -146,9 +157,39 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
         <Box className={cls.buttonArea}>
           <Group gap={8}>
             {isMyProfile && (
-              <ActionIcon variant="subtle" color="gray" size="lg" onClick={handleLogout}>
-                <Image src={LogoutIcon.src} width={24} height={24} alt="logout" />
-              </ActionIcon>
+              <Menu shadow="md" width={220} position="bottom-end">
+                <Menu.Target>
+                  <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Profile options">
+                    <Image src={VerticalDotsIcon.src} width={24} height={24} alt="options" />
+                  </ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item
+                    onClick={handleToggleTheme}
+                    leftSection={
+                      <Image
+                        src={isDark ? LightThemeIcon.src : DarkThemeIcon.src}
+                        width={18}
+                        height={18}
+                        alt=""
+                      />
+                    }
+                  >
+                    {isDark ? 'Light theme' : 'Dark theme'}
+                  </Menu.Item>
+                  <Menu.Item onClick={() => setIsChangePasswordOpen(true)}>
+                    Change password
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item
+                    color="red"
+                    onClick={handleLogout}
+                    leftSection={<Image src={LogoutIcon.src} width={18} height={18} alt="" />}
+                  >
+                    Log out
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
             )}
             <ActionIcon variant="subtle" color="gray" size="lg" onClick={handleClose}>
               <Image src={XIcon.src} width={24} height={24} alt="close" />
@@ -203,23 +244,6 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
             </Group>
           )}
 
-          {isMyProfile && (
-            <Box mt="md">
-              <Text size="xs" c="dimmed" fw={600} mb={6}>
-                Appearance
-              </Text>
-              <SegmentedControl
-                fullWidth
-                size="xs"
-                value={computedScheme}
-                onChange={(value) => setColorScheme(value as 'light' | 'dark')}
-                data={[
-                  { value: 'light', label: 'Light' },
-                  { value: 'dark', label: 'Dark' },
-                ]}
-              />
-            </Box>
-          )}
         </Box>
         {!isMyProfile && (
           <Button
@@ -234,6 +258,13 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
           </Button>
         )}
       </Box>
+
+      {isMyProfile && (
+        <ChangePasswordModal
+          opened={isChangePasswordOpen}
+          onClose={() => setIsChangePasswordOpen(false)}
+        />
+      )}
     </Modal>
   );
 };
