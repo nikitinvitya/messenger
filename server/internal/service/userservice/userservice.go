@@ -5,7 +5,11 @@ import (
 	"database/sql"
 	"errors"
 
+	"log/slog"
+
+	"github.com/nikitinvitya/messenger/internal/cache"
 	"github.com/nikitinvitya/messenger/internal/model"
+	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
 	"github.com/nikitinvitya/messenger/internal/repository/userrepository"
 	"github.com/nikitinvitya/messenger/internal/websocket"
 	"golang.org/x/crypto/bcrypt"
@@ -25,32 +29,63 @@ type UserService interface {
 }
 
 type userService struct {
-	repo userrepository.UserRepository
-	hub  *websocket.Hub
+	repo     userrepository.UserRepository
+	chatRepo chatrepository.ChatRepository
+	hub      *websocket.Hub
+	cache    cache.Cache
 }
 
-func NewUserService(repo userrepository.UserRepository, hub *websocket.Hub) UserService {
+func NewUserService(repo userrepository.UserRepository, chatRepo chatrepository.ChatRepository, hub *websocket.Hub, c cache.Cache) UserService {
 	return &userService{
-		repo: repo,
-		hub:  hub,
+		repo:     repo,
+		chatRepo: chatRepo,
+		hub:      hub,
+		cache:    c,
 	}
 }
 
 func (s *userService) GetProfileByID(ctx context.Context, id int) (*model.User, error) {
+	key := cache.UserByIDKey(id)
+	var cached model.User
+	if ok, err := s.cache.Get(ctx, key, &cached); err == nil && ok {
+		cache.RefreshUserOnline(&cached, s.hub)
+		return &cached, nil
+	}
+
 	user, err := s.repo.GetUserByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	user.IsOnline = s.hub.IsUserOnline(user.ID)
+
+	if err := s.cache.Set(ctx, key, user, 0); err != nil {
+		slog.Warn("cache: set user by id", "error", err, "userID", id)
+	}
+
 	return user, nil
 }
 
 func (s *userService) GetProfileByName(ctx context.Context, username string) (*model.User, error) {
+	key := cache.UserByUsernameKey(username)
+	var cached model.User
+	if ok, err := s.cache.Get(ctx, key, &cached); err == nil && ok {
+		cache.RefreshUserOnline(&cached, s.hub)
+		return &cached, nil
+	}
+
 	user, err := s.repo.GetUserByName(ctx, username)
 	if err != nil {
 		return nil, err
 	}
 	user.IsOnline = s.hub.IsUserOnline(user.ID)
+
+	if err := s.cache.Set(ctx, key, user, 0); err != nil {
+		slog.Warn("cache: set user by username", "error", err, "username", username)
+	}
+	if err := s.cache.Set(ctx, cache.UserByIDKey(user.ID), user, 0); err != nil {
+		slog.Warn("cache: set user by id", "error", err, "userID", user.ID)
+	}
+
 	return user, nil
 }
 
@@ -91,7 +126,28 @@ func (s *userService) UpdateProfile(ctx context.Context, userID int, username st
 		return nil, err
 	}
 
+	s.invalidateUserProfileCache(ctx, userID, currentUser.Username, username)
+
 	return s.GetProfileByID(ctx, userID)
+}
+
+func (s *userService) invalidateUserProfileCache(ctx context.Context, userID int, oldUsername, newUsername string) {
+	if err := s.cache.InvalidateUser(ctx, userID, oldUsername); err != nil {
+		slog.Warn("cache: invalidate user", "error", err)
+	}
+	if newUsername != oldUsername {
+		if err := s.cache.InvalidateUser(ctx, userID, newUsername); err != nil {
+			slog.Warn("cache: invalidate user", "error", err)
+		}
+	}
+
+	ids := []int{userID}
+	if contactIDs, err := s.chatRepo.GetContactIDs(ctx, userID); err == nil {
+		ids = append(ids, contactIDs...)
+	}
+	if err := s.cache.InvalidateUserChats(ctx, ids...); err != nil {
+		slog.Warn("cache: invalidate contact chats", "error", err)
+	}
 }
 
 func (s *userService) ChangePassword(ctx context.Context, userID int, currentPassword, newPassword string) error {

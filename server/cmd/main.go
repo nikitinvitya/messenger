@@ -15,6 +15,7 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	server "github.com/nikitinvitya/messenger"
+	"github.com/nikitinvitya/messenger/internal/cache"
 	"github.com/nikitinvitya/messenger/internal/handler"
 	"github.com/nikitinvitya/messenger/internal/handler/authhandler"
 	"github.com/nikitinvitya/messenger/internal/handler/blocklisthandler"
@@ -74,6 +75,11 @@ func main() {
 	}
 	slog.Info("Successfully connected to the database!")
 
+	appCache, err := cache.NewFromEnv()
+	if err != nil {
+		log.Fatalf("FATAL: Redis cache: %v", err)
+	}
+
 	uploadDir := "./uploads"
 
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
@@ -90,10 +96,10 @@ func main() {
 	blocklistRepo := blocklistrepository.NewBlocklistRepository(db)
 
 	authService := authservice.NewAuthService(userRepo, jwtSecret)
-	userService := userservice.NewUserService(userRepo, hub)
-	chatService := chatservice.NewChatService(chatRepo, hub, messageRepo, userRepo)
+	userService := userservice.NewUserService(userRepo, chatRepo, hub, appCache)
+	chatService := chatservice.NewChatService(chatRepo, hub, messageRepo, userRepo, appCache)
 	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo, hub)
-	messageService := messageservice.NewMessageService(chatRepo, messageRepo, userRepo, hub, blocklistService)
+	messageService := messageservice.NewMessageService(chatRepo, messageRepo, userRepo, hub, blocklistService, appCache)
 
 	authHandler := authhandler.NewAuthHandler(authService)
 	userHandler := userhandler.NewUserHandler(userService)
