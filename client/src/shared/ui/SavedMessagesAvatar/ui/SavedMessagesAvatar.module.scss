@@ -1,0 +1,14 @@
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: var(--accent-tg-blue);
+  overflow: hidden;
+}
+
+.icon {
+  display: block;
+  object-fit: contain;
+}
