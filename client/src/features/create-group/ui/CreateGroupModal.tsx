@@ -72,7 +72,10 @@ export const CreateGroupModal = ({isOpened, onClose}: GroupModalProps) => {
       opened={isOpened}
       onClose={onClose}
       title={"Create new group"}
+      centered
+      size="md"
       classNames={{
+        inner: cls.modalInner,
         content: cls.modalContent,
         header: cls.modalHeader,
         title: cls.modalTitle,

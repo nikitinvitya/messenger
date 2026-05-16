@@ -1,6 +1,7 @@
 import { getMessages } from '@/entities/message/api/getMessages';
 import { getChatById } from '@/entities/chat/api/getChatById';
 import { getCurrentUser } from '@/entities/user/api/getCurrentUser';
+import { getChatDisplayName, isSavedChat } from '@/entities/chat/lib/savedChat';
 import { Box } from '@mantine/core';
 import { ChatWindow } from "@/widgets/chat-window";
 import { ForwardModal } from "@/features/forward-modal";
@@ -20,24 +21,20 @@ export async function ChatView({ chatID }: ChatViewProps) {
       getCurrentUser(),
     ]);
 
-    let chatName = 'Chat';
-    let partnerAvatar = undefined;
-    let partnerUsername = undefined;
+    const saved = isSavedChat(chat);
+    let chatName = getChatDisplayName(chat, currentUser.id);
+    let partnerAvatar: string | undefined;
+    let partnerUsername: string | undefined;
     let partnerUserID: number | undefined;
     let partnerIsOnline = false;
 
-    if (chat.type === 'group' && chat.name) {
-      chatName = chat.name;
-    } else if (chat.type === 'private') {
+    if (!saved && chat.type === 'private') {
       const partner = chat.participants.find(p => p.id !== currentUser.id);
       if (partner) {
-        chatName = partner.username;
         partnerAvatar = partner.avatarURL;
         partnerUsername = partner.username;
         partnerUserID = partner.id;
         partnerIsOnline = !!partner.isOnline;
-      } else {
-        chatName = "Saved Messages";
       }
     }
 
@@ -45,7 +42,7 @@ export async function ChatView({ chatID }: ChatViewProps) {
       <Box style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <ChatWindow
           initialMessages={messagesData.messages}
-          blockStatus={messagesData.blockStatus}
+          blockStatus={saved ? 'none' : messagesData.blockStatus}
           chatID={chatID}
           chatName={chatName}
           chatType={chat.type}

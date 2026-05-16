@@ -7,6 +7,8 @@ import classNames from 'classnames';
 
 import { Chat } from "@/entities/chat";
 import { leaveChat } from "@/entities/chat/api/leaveChat";
+import { clearChatHistory } from "@/entities/chat/api/clearChatHistory";
+import { getChatDisplayName, isSavedChat } from "@/entities/chat/lib/savedChat";
 import { useChatStore } from "@/entities/chat/model/store";
 import { useUserStore } from "@/entities/user";
 import { blockUser, unblockUser } from "@/entities/blocklist";
@@ -14,6 +16,7 @@ import { useMessageStore } from "@/entities/message";
 import { AppLink } from "@/shared/ui/AppLink/ui/AppLink";
 import { AppRoutes } from "@/shared/config/routes";
 import { AppAvatar } from "@/shared/ui/AppAvatar/ui/AppAvatar";
+import { SavedMessagesAvatar } from "@/shared/ui/SavedMessagesAvatar/ui/SavedMessagesAvatar";
 
 import ArrowIcon from '@/shared/assets/ArrowIcon.svg';
 import VerticalDotsIcon from "@/shared/assets/VerticalDotsIcon.svg";
@@ -34,21 +37,23 @@ interface ChatHeaderProps {
 }
 
 export const ChatHeader = ({
-                             chatName: initialChatName,
-                             chatID,
-                             chatType,
-                             partnerAvatar: initialPartnerAvatar,
-                             partnerUsername,
-                             partnerUserID: partnerUserIDProp,
-                             isOnline: initialIsOnline,
-                             initialParticipantsCount,
-                             initialGroupAvatar,
-                             onToggleInfo
-                           }: ChatHeaderProps) => {
+  chatName: initialChatName,
+  chatID,
+  chatType,
+  partnerAvatar: initialPartnerAvatar,
+  partnerUsername,
+  partnerUserID: partnerUserIDProp,
+  isOnline: initialIsOnline,
+  initialParticipantsCount,
+  initialGroupAvatar,
+  onToggleInfo
+}: ChatHeaderProps) => {
   const router = useRouter();
   const removeChat = useChatStore((state) => state.removeChat);
+  const updateChat = useChatStore((state) => state.updateChat);
   const blockStatus = useMessageStore((state) => state.blockStatus);
   const setBlockStatus = useMessageStore((state) => state.setBlockStatus);
+  const clearMessages = useMessageStore((state) => state.clearMessages);
 
   const { user: currentUser } = useUserStore();
 
@@ -56,11 +61,12 @@ export const ChatHeader = ({
     state.chats.find(c => c.id === chatID)
   );
 
+  const saved = isSavedChat({ type: chatType });
   const partnerInStore = chatFromStore?.participants?.find(p => p.id !== currentUser?.id);
 
-  const displayChatName = chatType === 'group'
-    ? (chatFromStore?.name || initialChatName)
-    : (partnerInStore?.username || initialChatName);
+  const displayChatName = chatFromStore
+    ? getChatDisplayName(chatFromStore, currentUser?.id)
+    : initialChatName;
 
   const displayAvatar = chatType === 'group'
     ? (chatFromStore?.avatarURL || initialGroupAvatar)
@@ -88,6 +94,15 @@ export const ChatHeader = ({
     }
   };
 
+  const handleClearHistory = async () => {
+    try {
+      await clearChatHistory(chatID);
+      clearMessages();
+      updateChat(chatID, { lastMessage: undefined, unreadCount: 0 });
+    } catch {
+    }
+  };
+
   const handleBlock = async () => {
     if (!partnerUserID) return;
     try {
@@ -107,7 +122,9 @@ export const ChatHeader = ({
   };
 
   const renderTitle = () => {
-    const headerAvatar = (
+    const headerAvatar = saved ? (
+      <SavedMessagesAvatar size={36} />
+    ) : (
       <AppAvatar
         src={displayAvatar}
         name={displayChatName}
@@ -115,6 +132,17 @@ export const ChatHeader = ({
         size={36}
       />
     );
+
+    if (saved) {
+      return (
+        <Box className={cls.profileLink}>
+          {headerAvatar}
+          <Box className={cls.textInfo}>
+            <Text className={cls.chatName}>{displayChatName}</Text>
+          </Box>
+        </Box>
+      );
+    }
 
     if (chatType === 'private' && partnerUsername) {
       return (
@@ -164,19 +192,25 @@ export const ChatHeader = ({
           </Menu.Target>
 
           <Menu.Dropdown>
-            {chatType === 'private' && partnerUserID && (
+            {saved ? (
+              <Menu.Item onClick={handleClearHistory}>Clear history</Menu.Item>
+            ) : (
               <>
-                {blockStatus === 'recipient_blocked' ? (
-                  <Menu.Item onClick={handleUnblockFromMenu}>Unblock user</Menu.Item>
-                ) : (
-                  <Menu.Item onClick={handleBlock}>Block user</Menu.Item>
+                {chatType === 'private' && partnerUserID && (
+                  <>
+                    {blockStatus === 'recipient_blocked' ? (
+                      <Menu.Item onClick={handleUnblockFromMenu}>Unblock user</Menu.Item>
+                    ) : (
+                      <Menu.Item onClick={handleBlock}>Block user</Menu.Item>
+                    )}
+                    <Menu.Divider />
+                  </>
                 )}
-                <Menu.Divider />
+                <Menu.Item color="red" onClick={handleLeave}>
+                  {chatType === 'group' ? 'Leave group' : 'Delete chat'}
+                </Menu.Item>
               </>
             )}
-            <Menu.Item color="red" onClick={handleLeave}>
-              {chatType === 'group' ? 'Leave group' : 'Delete chat'}
-            </Menu.Item>
           </Menu.Dropdown>
         </Menu>
       </Box>

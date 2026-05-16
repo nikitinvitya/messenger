@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from 'react';
 import classNames from 'classnames';
-import { Box } from '@mantine/core';
+import { Box, Text } from '@mantine/core';
 import { type Chat } from '@/entities/chat';
+import { isSavedChat } from '@/entities/chat/lib/savedChat';
 import { MessageItem, useMessageStore, type Message } from '@/entities/message';
 import { websocketService } from "@/shared/api/websocket";
 import cls from './MessageList.module.scss';
@@ -14,7 +15,7 @@ interface MessageListProps {
   chatType: Chat['type'];
 }
 
-export const MessageList = ({ initialMessages, chatType }: MessageListProps) => {
+export const MessageList = ({ initialMessages, chatType, className }: MessageListProps) => {
   const messages = useMessageStore((state) => state.messages);
   const setInitialMessages = useMessageStore((state) => state.setInitialMessages);
   const viewport = useRef<HTMLDivElement>(null);
@@ -63,8 +64,19 @@ export const MessageList = ({ initialMessages, chatType }: MessageListProps) => 
     return { ...msg, isFirstOfGroup, isLastOfGroup };
   });
 
+  const showSavedEmptyState =
+    isSavedChat({ type: chatType }) && messagesWithMeta.length === 0;
+
   return (
-    <Box ref={viewport} className={classNames(cls.messageList)}>
+    <Box ref={viewport} className={classNames(cls.messageList, className)}>
+      {showSavedEmptyState && (
+        <Box className={cls.savedEmptyState}>
+          <Text className={cls.savedEmptyTitle}>This is your Saved Messages</Text>
+          <Text className={cls.savedEmptyHint}>
+            Forward messages here to save them, or send notes to yourself.
+          </Text>
+        </Box>
+      )}
       {messagesWithMeta.map((message) => (
         <MessageItem
           key={message.id}
