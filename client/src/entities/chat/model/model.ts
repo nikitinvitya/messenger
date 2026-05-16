@@ -16,7 +16,7 @@ export interface ChatParticipant extends User {
 
 export interface Chat {
   id: number,
-  type: 'private' | 'group'
+  type: 'private' | 'group' | 'saved'
   createdAt: string,
   name?: string;
   participants: ChatParticipant[],
