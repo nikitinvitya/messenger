@@ -101,7 +101,7 @@ func main() {
 	blocklistService := blocklistservice.NewBlocklistService(blocklistRepo, hub)
 	messageService := messageservice.NewMessageService(chatRepo, messageRepo, userRepo, hub, blocklistService, appCache)
 
-	authHandler := authhandler.NewAuthHandler(authService)
+	authHandler := authhandler.NewAuthHandler(authService, chatService)
 	userHandler := userhandler.NewUserHandler(userService)
 	chatHandler := chathandler.NewChatHandler(chatService)
 	messageHandler := messagehandler.NewMessageHandler(messageService)

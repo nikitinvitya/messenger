@@ -80,7 +80,7 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 		return nil, errors.New("message content or image is required")
 	}
 
-	if chat.Type == "private" {
+	if chat.Type == model.ChatTypePrivate {
 		participantIDs, err := s.chatRepo.ListChatParticipantsID(ctx, chatID)
 		if err != nil {
 			return nil, err
@@ -226,13 +226,18 @@ func (s *messageService) ListMessagesInChat(ctx context.Context, userID, chatID,
 	var response dto.ListMessagesResponse
 	response.Messages = messages
 
-	if chat.Type == "private" {
+	if chat.Type == model.ChatTypePrivate {
 		var recipientID int
 		for _, id := range participantIDs {
 			if id != userID {
 				recipientID = id
 				break
 			}
+		}
+
+		if recipientID == 0 {
+			response.BlockStatus = "none"
+			return &response, nil
 		}
 
 		isRecipientBlocked, err := s.blockService.CheckBlock(ctx, userID, recipientID)

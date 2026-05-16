@@ -21,6 +21,9 @@ var (
 	ErrInvalidParticipantsCount = errors.New("private chat must have exactly 2 participants")
 	ErrInvalidChatType          = errors.New("unknown chat types")
 	ErrInvalidChatName          = errors.New("invalid chat name")
+	ErrSavedChatProtected       = errors.New("saved messages chat cannot be deleted or left")
+	ErrCannotModifySavedChat    = errors.New("saved messages chat cannot be modified")
+	ErrClearHistoryNotAllowed   = errors.New("only saved messages chat history can be cleared this way")
 )
 
 type ChatService interface {
@@ -35,6 +38,8 @@ type ChatService interface {
 	AddParticipant(ctx context.Context, requesterID, chatID, targetUserID int) error
 	UpdateLastReadMessage(ctx context.Context, chatID, userID, messageID int) error
 	ListChatParticipantsID(ctx context.Context, chatID int) ([]int, error)
+	EnsureSavedChat(ctx context.Context, userID int) (int, error)
+	ClearChatHistory(ctx context.Context, userID, chatID int) error
 }
 
 type chatService struct {
@@ -84,9 +89,20 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chat
 	var chatID int
 	var err error
 
+	if chatType == model.ChatTypeSaved {
+		return 0, ErrInvalidChatType
+	}
+
+	if len(finalUserIDs) == 1 && finalUserIDs[0] == creatorID {
+		return s.EnsureSavedChat(ctx, creatorID)
+	}
+
 	if chatType == "private" {
 		if len(finalUserIDs) != 2 {
 			return 0, ErrInvalidParticipantsCount
+		}
+		if finalUserIDs[0] == finalUserIDs[1] {
+			return s.EnsureSavedChat(ctx, creatorID)
 		}
 		existingChatID, err := s.repo.FindPrivateChatByParticipants(ctx, finalUserIDs[0], finalUserIDs[1])
 
@@ -261,6 +277,12 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 	if err != nil {
 		return err
 	}
+	if chat == nil {
+		return messageservice.ErrChatNotFound
+	}
+	if model.IsSavedChatType(chat.Type) {
+		return ErrSavedChatProtected
+	}
 
 	if chat.Type == "private" {
 		if err := s.repo.DeleteChat(ctx, chatID); err != nil {
@@ -316,6 +338,9 @@ func (s *chatService) UpdateChat(ctx context.Context, userID, chatID int, name *
 	if err != nil {
 		return nil, err
 	}
+	if model.IsSavedChatType(chat.Type) {
+		return nil, ErrCannotModifySavedChat
+	}
 	if chat.Type != "group" {
 		return nil, errors.New("cannot update private chat info")
 	}
@@ -364,6 +389,9 @@ func (s *chatService) AddParticipant(ctx context.Context, requesterID, chatID, t
 		return errors.New("chat not found")
 	}
 
+	if model.IsSavedChatType(chat.Type) {
+		return errors.New("cannot add participants to saved messages chat")
+	}
 	if chat.Type != "group" {
 		return errors.New("cannot add participants to a private chat")
 	}
@@ -407,4 +435,64 @@ func (s *chatService) UpdateLastReadMessage(ctx context.Context, chatID, userID,
 
 func (s *chatService) ListChatParticipantsID(ctx context.Context, chatID int) ([]int, error) {
 	return s.repo.ListChatParticipantsID(ctx, chatID)
+}
+
+func (s *chatService) EnsureSavedChat(ctx context.Context, userID int) (int, error) {
+	chatID, err := s.repo.FindSavedChatByUserID(ctx, userID)
+	if err == nil {
+		return chatID, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return 0, err
+	}
+
+	displayName := model.SavedChatDisplayName
+	chatID, err = s.repo.CreateChat(ctx, &displayName, model.ChatTypeSaved, []int{userID})
+	if err != nil {
+		return 0, err
+	}
+
+	s.invalidateChatsForUsers(ctx, []int{userID})
+
+	fullChatData, err := s.GetChatByID(ctx, userID, chatID)
+	if err == nil {
+		s.hub.SendToUsers(websocket.EventChatCreated, fullChatData, []int{userID})
+	}
+
+	return chatID, nil
+}
+
+func (s *chatService) ClearChatHistory(ctx context.Context, userID, chatID int) error {
+	isMember, err := s.repo.IsUserInChat(ctx, userID, chatID)
+	if err != nil {
+		return err
+	}
+	if !isMember {
+		return messageservice.ErrAccessDenied
+	}
+
+	chat, err := s.repo.GetChatByID(ctx, chatID)
+	if err != nil {
+		return err
+	}
+	if chat == nil {
+		return messageservice.ErrChatNotFound
+	}
+	if !model.IsSavedChatType(chat.Type) {
+		return ErrClearHistoryNotAllowed
+	}
+
+	if err := s.messageRepo.ClearChatMessages(ctx, chatID); err != nil {
+		return err
+	}
+
+	s.invalidateChatsForUsers(ctx, []int{userID})
+	s.invalidateChat(ctx, chatID, []int{userID})
+
+	updatedChat, err := s.GetChatByID(ctx, userID, chatID)
+	if err == nil {
+		s.hub.SendToUsers(websocket.EventChatUpdated, updatedChat, []int{userID})
+	}
+
+	return nil
 }

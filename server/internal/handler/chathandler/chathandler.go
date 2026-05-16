@@ -147,6 +147,10 @@ func (h *ChatHandler) LeaveChat(w http.ResponseWriter, r *http.Request) {
 			handler.ClientErrorResponse(w, http.StatusForbidden, "You are not a member of this chat")
 			return
 		}
+		if errors.Is(err, chatservice.ErrSavedChatProtected) {
+			handler.ClientErrorResponse(w, http.StatusForbidden, "Saved messages chat cannot be deleted")
+			return
+		}
 		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to leave chat", err)
 		return
 	}
@@ -216,6 +220,10 @@ func (h *ChatHandler) UpdateChat(w http.ResponseWriter, r *http.Request) {
 
 	updatedChat, err := h.chatService.UpdateChat(r.Context(), userID, chatID, requestBody.Name, requestBody.AvatarURL)
 	if err != nil {
+		if errors.Is(err, chatservice.ErrCannotModifySavedChat) {
+			handler.ClientErrorResponse(w, http.StatusForbidden, err.Error())
+			return
+		}
 		handler.ClientErrorResponse(w, http.StatusForbidden, err.Error())
 		return
 	}
@@ -239,6 +247,42 @@ func (h *ChatHandler) AddParticipant(w http.ResponseWriter, r *http.Request) {
 	err := h.chatService.AddParticipant(r.Context(), userID, chatID, requestBody.UserID)
 	if err != nil {
 		handler.ClientErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	handler.SuccessResponse(w, http.StatusNoContent, nil)
+}
+
+func (h *ChatHandler) ClearChatHistory(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*jwt.RegisteredClaims)
+	if !ok {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve user claims", nil)
+		return
+	}
+
+	userID, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Invalid user ID in token", err)
+		return
+	}
+
+	chatID, err := strconv.Atoi(chi.URLParam(r, "chatID"))
+	if err != nil {
+		handler.ClientErrorResponse(w, http.StatusBadRequest, "Invalid chat id")
+		return
+	}
+
+	err = h.chatService.ClearChatHistory(r.Context(), userID, chatID)
+	if err != nil {
+		if errors.Is(err, messageservice.ErrAccessDenied) {
+			handler.ClientErrorResponse(w, http.StatusForbidden, "Access denied")
+			return
+		}
+		if errors.Is(err, chatservice.ErrClearHistoryNotAllowed) {
+			handler.ClientErrorResponse(w, http.StatusBadRequest, "Only saved messages chat history can be cleared")
+			return
+		}
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to clear chat history", err)
 		return
 	}
 

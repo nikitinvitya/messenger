@@ -13,6 +13,7 @@ import (
 
 type ChatRepository interface {
 	CreateChat(ctx context.Context, name *string, chatType string, userIDs []int) (int, error)
+	FindSavedChatByUserID(ctx context.Context, userID int) (int, error)
 	ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error)
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 	FindPrivateChatByParticipants(ctx context.Context, userID1 int, userID2 int) (int, error)
@@ -100,7 +101,8 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 		) last_msg ON true
 		WHERE 
 			cp.user_id = $1
-		ORDER BY 
+		ORDER BY
+			CASE WHEN c.type = 'saved' THEN 0 ELSE 1 END,
 			COALESCE(last_msg.created_at, c.created_at) DESC`
 
 	rows, err := r.db.QueryContext(ctx, sqlReq, userID)
@@ -170,6 +172,20 @@ func (r *chatRepository) IsUserInChat(ctx context.Context, userID int, chatID in
 	}
 
 	return exists, nil
+}
+
+func (r *chatRepository) FindSavedChatByUserID(ctx context.Context, userID int) (int, error) {
+	sqlReq := `SELECT c.id
+		FROM chats c
+		JOIN chat_participants cp ON cp.chat_id = c.id
+		WHERE c.type = 'saved' AND cp.user_id = $1
+		LIMIT 1`
+
+	var chatID int
+	if err := r.db.QueryRowContext(ctx, sqlReq, userID).Scan(&chatID); err != nil {
+		return 0, err
+	}
+	return chatID, nil
 }
 
 func (r *chatRepository) FindPrivateChatByParticipants(ctx context.Context, userID1 int, userID2 int) (int, error) {
@@ -295,10 +311,12 @@ func (r *chatRepository) UpdateChat(ctx context.Context, chatID int, name *strin
 
 func (r *chatRepository) GetContactIDs(ctx context.Context, userID int) ([]int, error) {
 	sqlReq := `
-		SELECT DISTINCT user_id 
-		FROM chat_participants 
-		WHERE chat_id IN (SELECT chat_id FROM chat_participants WHERE user_id = $1)
-		AND user_id != $1`
+		SELECT DISTINCT cp2.user_id
+		FROM chat_participants cp2
+		JOIN chats c ON c.id = cp2.chat_id
+		WHERE cp2.chat_id IN (SELECT chat_id FROM chat_participants WHERE user_id = $1)
+		AND cp2.user_id != $1
+		AND c.type != 'saved'`
 
 	rows, err := r.db.QueryContext(ctx, sqlReq, userID)
 	if err != nil {
