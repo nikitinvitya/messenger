@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/nikitinvitya/messenger/internal/cache"
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
@@ -37,15 +38,31 @@ type messageService struct {
 	userRepo     userrepository.UserRepository
 	hub          *websocket.Hub
 	blockService blocklistservice.BlocklistService
+	cache        cache.Cache
 }
 
-func NewMessageService(chatRepo chatrepository.ChatRepository, messageRepo messagerepository.MessageRepository, userRepo userrepository.UserRepository, hub *websocket.Hub, blockService blocklistservice.BlocklistService) MessageService {
+func NewMessageService(chatRepo chatrepository.ChatRepository, messageRepo messagerepository.MessageRepository, userRepo userrepository.UserRepository, hub *websocket.Hub, blockService blocklistservice.BlocklistService, c cache.Cache) MessageService {
 	return &messageService{
 		chatRepo:     chatRepo,
 		messageRepo:  messageRepo,
 		userRepo:     userRepo,
 		hub:          hub,
 		blockService: blockService,
+		cache:        c,
+	}
+}
+
+func (s *messageService) invalidateChatCaches(ctx context.Context, chatID int) {
+	participantIDs, err := s.chatRepo.ListChatParticipantsID(ctx, chatID)
+	if err != nil {
+		slog.Warn("cache: list participants for invalidation", "error", err, "chatID", chatID)
+		return
+	}
+	if err := s.cache.InvalidateUserChats(ctx, participantIDs...); err != nil {
+		slog.Warn("cache: invalidate user chats", "error", err)
+	}
+	if err := s.cache.InvalidateChat(ctx, chatID, participantIDs); err != nil {
+		slog.Warn("cache: invalidate chat", "error", err, "chatID", chatID)
 	}
 }
 
@@ -173,6 +190,7 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 	}
 
 	s.hub.SendToUsers(websocket.EventMessageCreated, messagePayload, participantsIDs)
+	s.invalidateChatCaches(ctx, chatID)
 
 	return finalMessage, nil
 }
@@ -297,6 +315,7 @@ func (s *messageService) UpdateMessage(ctx context.Context, userID, messageID in
 	}
 
 	s.hub.SendToUsers(websocket.EventMessageUpdated, messagePayload, participantsIDs)
+	s.invalidateChatCaches(ctx, updatedMessage.ChatID)
 
 	return updatedMessage, nil
 }
@@ -329,6 +348,7 @@ func (s *messageService) DeleteMessage(ctx context.Context, userID, messageID in
 	}
 
 	s.hub.SendToUsers(websocket.EventMessageDeleted, deletePayload, participantsIDs)
+	s.invalidateChatCaches(ctx, message.ChatID)
 
 	return message, nil
 }
@@ -402,6 +422,8 @@ func (s *messageService) ForwardMessage(ctx context.Context, forwarderID, destin
 
 		s.hub.SendToUsers(websocket.EventMessageCreated, messagePayload, participantsIDs)
 	}
+
+	s.invalidateChatCaches(ctx, destinationChatID)
 
 	return nil
 }
