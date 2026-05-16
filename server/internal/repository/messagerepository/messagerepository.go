@@ -17,6 +17,7 @@ type MessageRepository interface {
 	UpdateMessage(ctx context.Context, messageID int, newContent string) error
 	GetMessageByID(ctx context.Context, messageID int) (*model.Message, error)
 	DeleteMessage(ctx context.Context, messageID int) error
+	ClearChatMessages(ctx context.Context, chatID int) error
 }
 
 type messageRepository struct {
@@ -214,4 +215,25 @@ func (r *messageRepository) DeleteMessage(ctx context.Context, messageID int) er
 	}
 
 	return nil
+}
+
+func (r *messageRepository) ClearChatMessages(ctx context.Context, chatID int) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err = tx.ExecContext(ctx, `DELETE FROM messages WHERE chat_id = $1`, chatID); err != nil {
+		return fmt.Errorf("clear messages: %w", err)
+	}
+
+	if _, err = tx.ExecContext(ctx,
+		`UPDATE chat_participants SET last_read_message_id = 0 WHERE chat_id = $1`,
+		chatID,
+	); err != nil {
+		return fmt.Errorf("reset read pointers: %w", err)
+	}
+
+	return tx.Commit()
 }
