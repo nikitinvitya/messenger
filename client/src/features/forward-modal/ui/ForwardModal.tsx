@@ -18,8 +18,7 @@ export const ForwardModal = () => {
     try {
       await forwardMessage(targetChatId, [forwardingMessage.id]);
       setForwardingMessage(null);
-    } catch (e) {
-      console.error("Failed to forward message", e);
+    } catch {
     }
   };
 

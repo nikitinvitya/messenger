@@ -26,9 +26,9 @@ export const UserSearchResult = ({ users }: UserSearchResultProps) => {
         chatType: "private",
       });
       router.push(`${AppRoutes.chats}/${res.chatID}`);
-    } catch (e: any) {
-      if (e.code === 'ECONNABORTED' || e.name === 'CanceledError') return;
-      console.log('Chat creation error:', e);
+    } catch (e: unknown) {
+      const err = e as { code?: string; name?: string };
+      if (err.code === 'ECONNABORTED' || err.name === 'CanceledError') return;
     }
   };
 

@@ -4,7 +4,7 @@ import { useUserStore } from '@/entities/user';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 import { AppRoutes } from '@/shared/config/routes';
-import { Loader } from '@mantine/core';
+import { Center, Loader } from '@mantine/core';
 
 export const AuthGuard = ({ children }: { children: ReactNode }) => {
   const { user, isLoading } = useUserStore();
@@ -21,7 +21,11 @@ export const AuthGuard = ({ children }: { children: ReactNode }) => {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return <Loader />;
+    return (
+      <Center h="100vh" w="100%">
+        <Loader size="md" />
+      </Center>
+    );
   }
 
   if (user) {

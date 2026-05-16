@@ -42,8 +42,7 @@ export const useUserStore = create<UserState & UserActions>((set) => ({
     try {
       await api.post('/auth/logout');
       set({ user: null, error: null });
-    } catch (error) {
-      console.error('Logout failed:', error);
+    } catch {
       set({error: 'Logout failed' });
     } finally {
       set({ isLoading: false })

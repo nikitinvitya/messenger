@@ -40,8 +40,7 @@ class WebSocketService {
       const url = `${WS_BASE_URL}/ws/connect?token=${ticket}`;
       this.socket = new WebSocket(url);
       this.setupEventListeners();
-    } catch (error) {
-      console.error('Failed to establish global WebSocket connection:', error);
+    } catch {
     }
   }
 
@@ -183,8 +182,7 @@ class WebSocketService {
             break;
           }
         }
-      } catch (error) {
-        console.error('Error processing WS message:', error);
+      } catch {
       }
     };
   }

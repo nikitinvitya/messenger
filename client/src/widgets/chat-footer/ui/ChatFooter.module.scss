@@ -2,13 +2,10 @@
   width: 100%;
 }
 
-.blockedState {
+.blockedBanner,
+.unblockFooterBtn {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  box-sizing: border-box;
   padding: 16px 20px;
   background-color: var(--send-footer-bg);
   border-top: 1px solid var(--send-footer-border);
@@ -22,11 +19,37 @@
 
 .blockedText {
   font: var(--font-s);
-  color: var(--text-secondary);
+  font-weight: 500;
+  color: var(--mantine-color-red-7);
   text-align: center;
   line-height: 1.4;
+  margin: 0;
+
+  [data-mantine-color-scheme='dark'] & {
+    color: var(--mantine-color-red-5);
+  }
 }
 
-.unblockBtn {
-  min-width: 140px;
+.unblockFooterBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--font-s);
+  font-weight: 600;
+  color: var(--mantine-color-red-7);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  [data-mantine-color-scheme='dark'] & {
+    color: var(--mantine-color-red-5);
+  }
+
+  &:hover:not(:disabled) {
+    background-color: var(--hover-row);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
 }

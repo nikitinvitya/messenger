@@ -1,9 +1,9 @@
-import { ReactNode } from 'react';
+import { ReactNode, Suspense } from 'react';
 import { AuthGuard } from "@/app/providers";
 import { Box } from "@mantine/core";
-import { getChats } from "@/entities/chat/api/getChats";
-import { Sidebar } from "@/widgets/sidebar";
 import { ProtectedContent } from './ProtectedContent';
+import { SidebarWithChats } from './SidebarWithChats';
+import { SidebarFallback } from './SidebarFallback';
 import cls from './ProtectedLayout.module.scss';
 
 interface LayoutProps {
@@ -11,13 +11,13 @@ interface LayoutProps {
   modal: ReactNode;
 }
 
-export default async function ProtectedLayout({ children, modal }: LayoutProps) {
-  const chats = await getChats();
-
+export default function ProtectedLayout({ children, modal }: LayoutProps) {
   return (
     <AuthGuard>
       <Box className={cls.layoutWrapper}>
-        <Sidebar initialChats={chats} />
+        <Suspense fallback={<SidebarFallback />}>
+          <SidebarWithChats />
+        </Suspense>
 
         <ProtectedContent>
           {children}

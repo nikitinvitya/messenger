@@ -32,7 +32,7 @@ export const SearchUser = (props: SearchUserProps) => {
       const users = await searchUsers(debouncedQuery);
       onSearchUpdate(users);
     };
-    fetchUsers().catch(console.error);
+    fetchUsers().catch(() => {});
   }, [debouncedQuery, onSearchUpdate])
 
   return (

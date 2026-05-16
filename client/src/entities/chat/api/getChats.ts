@@ -1,10 +1,11 @@
+import { cache } from 'react';
 import { Chat, ChatApiResponse } from '@/entities/chat';
 import { api } from '@/shared/api';
 import { redirect } from 'next/navigation';
 import { AppRoutes } from '@/shared/config/routes';
 import { getServerApiBaseUrl, getServerApiCookieHeader } from '@/shared/lib/server-api-base';
 
-export const getChats = async (): Promise<Chat[]> => {
+export const getChats = cache(async (): Promise<Chat[]> => {
   const cookieHeader = await getServerApiCookieHeader();
   if (!cookieHeader) {
     redirect(AppRoutes.login);
@@ -18,4 +19,4 @@ export const getChats = async (): Promise<Chat[]> => {
   });
 
   return response.data.chats;
-};
+});

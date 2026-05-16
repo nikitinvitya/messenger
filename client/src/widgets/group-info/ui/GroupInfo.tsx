@@ -46,8 +46,7 @@ export const GroupInfo = ({ opened, onClose, chatID }: GroupInfoProps) => {
       setChatData(data);
       setNewName(data.name || '');
       updateChatStore(chatID, data);
-    } catch (e) {
-      console.error(e);
+    } catch {
     }
   }, [chatID, updateChatStore]);
 
@@ -81,8 +80,7 @@ export const GroupInfo = ({ opened, onClose, chatID }: GroupInfoProps) => {
       });
       updateChatStore(chatID, updated);
       setIsEditingName(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
     } finally {
       setIsUpdating(false);
     }
@@ -102,8 +100,7 @@ export const GroupInfo = ({ opened, onClose, chatID }: GroupInfoProps) => {
 
       setChatData(prev => prev ? { ...prev, avatarURL: updated.avatarURL } : null);
       updateChatStore(chatID, updated);
-    } catch (error) {
-      console.error("Failed to update group avatar:", error);
+    } catch {
     } finally {
       setIsUpdating(false);
     }

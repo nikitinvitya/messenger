@@ -229,6 +229,20 @@
   }
 }
 
+.avatarProfileLink {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  line-height: 0;
+  border-radius: 50%;
+  vertical-align: top;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: none;
+  }
+}
+
 .usernameInside {
   width: 100%;
   font-size: 0.75rem;

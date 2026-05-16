@@ -33,8 +33,7 @@ export const AddMemberModal = ({ opened, onClose, chatID, onSuccess }: AddMember
       onSuccess();
       onClose();
       setQuery('');
-    } catch (e) {
-      console.error(e);
+    } catch {
     }
   };
 

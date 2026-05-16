@@ -2,6 +2,7 @@
 
 import classNames from 'classnames';
 import { Box, Text } from "@mantine/core";
+import { usePathname } from 'next/navigation';
 import { useUserStore } from "@/entities/user";
 import { AppLink } from "@/shared/ui/AppLink/ui/AppLink";
 import { formatDate } from "@/shared/lib/formatDate";
@@ -20,7 +21,9 @@ interface ChatItemProps {
 }
 
 export const ChatListItem = ({ chatInfo, className }: ChatItemProps) => {
+  const pathname = usePathname();
   const currentUser = useUserStore((state) => state.user);
+  const isActive = pathname === `/chats/${chatInfo.id}`;
 
   const partner = chatInfo.type === 'private'
     ? chatInfo.participants?.find(p => p.id !== currentUser?.id)
@@ -40,7 +43,10 @@ export const ChatListItem = ({ chatInfo, className }: ChatItemProps) => {
   const chatName = getChatName();
 
   return (
-    <AppLink href={`/chats/${chatInfo.id}`} className={classNames(cls.link, className)}>
+    <AppLink
+      href={`/chats/${chatInfo.id}`}
+      className={classNames(cls.link, isActive && cls.linkActive, className)}
+    >
       <Box className={cls.chatItem}>
         <AppAvatar
           src={avatarSrc}

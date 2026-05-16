@@ -12,6 +12,8 @@
   position: relative;
   background-color: var(--main-content-bg);
   z-index: 5;
+  display: flex;
+  flex-direction: column;
 
   @media (max-width: 768px) {
     position: fixed;

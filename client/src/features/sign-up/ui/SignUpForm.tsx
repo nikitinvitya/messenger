@@ -1,7 +1,7 @@
 'use client';
 
 import { useForm } from '@mantine/form';
-import { TextInput, PasswordInput, Button, Box, Group, Text, Title, Stack } from '@mantine/core';
+import { TextInput, PasswordInput, Button, Box, Group } from '@mantine/core';
 import { z } from 'zod';
 import { signUpByEmail } from '../model/api';
 import { useRouter } from 'next/navigation';
@@ -23,8 +23,8 @@ const signUpSchema = z.object({
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export function SignUpForm() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);
 
   const form = useForm<SignUpFormData>({
     initialValues: { email: '', username: '', password: '', confirmPassword: '' },
@@ -56,7 +56,7 @@ export function SignUpForm() {
     try {
       const { confirmPassword, ...dataToSend } = values;
       await signUpByEmail(dataToSend);
-      setIsRegistered(true);
+      router.push(AppRoutes.login);
     } catch (err: any) {
       const data = err.response?.data;
       if (data?.code === 'USERNAME_TAKEN') {
@@ -70,20 +70,6 @@ export function SignUpForm() {
       setIsLoading(false);
     }
   };
-
-  if (isRegistered) {
-    return (
-      <Stack align="center" className={cls.signUpForm} gap="md">
-        <Title order={3}>Account created</Title>
-        <Text ta="center">
-          You can log in with <b>{form.values.username}</b> or <b>{form.values.email}</b>.
-        </Text>
-        <AppLink href={AppRoutes.login}>
-          <Button variant="outline" fullWidth>Go to Login</Button>
-        </AppLink>
-      </Stack>
-    );
-  }
 
   return (
     <Box component="form" onSubmit={form.onSubmit(handleSubmit)} className={cls.signUpForm}>

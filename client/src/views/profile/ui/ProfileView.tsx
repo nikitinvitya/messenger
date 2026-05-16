@@ -84,8 +84,7 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
         router.push(`/chats/${res.chatID}`);
       }, 50);
 
-    } catch (e) {
-      console.error("Failed to start conversation:", e);
+    } catch {
     } finally {
       setIsCreatingChat(false);
     }
@@ -98,8 +97,7 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
     try {
       const data = await uploadMedia(file);
       setAvatarURL(data.url);
-    } catch (error) {
-      console.error(error);
+    } catch {
     } finally {
       setIsLoading(false);
     }
@@ -115,8 +113,7 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
       if (updated.username !== targetUser.username) {
         router.replace(`/profile/${updated.username}`);
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
     } finally {
       setIsLoading(false);
     }

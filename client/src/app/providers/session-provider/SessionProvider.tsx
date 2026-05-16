@@ -12,7 +12,7 @@ const SessionInitializer = () => {
   const pathname = usePathname();
 
   useEffect(() => {
-    fetchUser().catch(console.error)
+    fetchUser().catch(() => {})
   }, []);
 
   const publicPaths = [AppRoutes.login, AppRoutes.signup];
@@ -22,7 +22,7 @@ const SessionInitializer = () => {
     if(isLoading) return
 
     if(user) {
-      websocketService.connect().catch(() => console.error())
+      websocketService.connect().catch(() => {})
     } else {
       websocketService.disconnect()
     }

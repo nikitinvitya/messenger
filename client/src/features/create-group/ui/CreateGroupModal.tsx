@@ -28,7 +28,7 @@ export const CreateGroupModal = ({isOpened, onClose}: GroupModalProps) => {
 
   useEffect(() => {
     if(debouncedSearch.trim().length > 0) {
-      searchUsers(debouncedSearch).then(setSearchResult).catch(console.error)
+      searchUsers(debouncedSearch).then(setSearchResult).catch(() => {})
     } else {
       setSearchResult([])
     }
@@ -61,8 +61,7 @@ export const CreateGroupModal = ({isOpened, onClose}: GroupModalProps) => {
       router.push(`/chats/${chatID}`)
       onClose()
 
-    } catch (e) {
-      console.log(e)
+    } catch {
     } finally {
       setIsLoading(false)
     }

@@ -84,8 +84,7 @@ export const ChatHeader = ({
       await leaveChat(chatID);
       removeChat(chatID);
       router.push(AppRoutes.chats);
-    } catch (error) {
-      console.error('Failed to leave chat:', error);
+    } catch {
     }
   };
 
@@ -94,8 +93,7 @@ export const ChatHeader = ({
     try {
       await blockUser(partnerUserID);
       setBlockStatus('recipient_blocked');
-    } catch (error) {
-      console.error('Failed to block user:', error);
+    } catch {
     }
   };
 
@@ -104,8 +102,7 @@ export const ChatHeader = ({
     try {
       await unblockUser(partnerUserID);
       setBlockStatus('none');
-    } catch (error) {
-      console.error('Failed to unblock user:', error);
+    } catch {
     }
   };
 

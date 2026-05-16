@@ -92,8 +92,7 @@ export const MessageItem = (props: MessageItemProps) => {
   const handleDelete = async () => {
     try {
       await deleteMessage(messageInfo.id);
-    } catch (e) {
-      console.error(e);
+    } catch {
     }
   };
 
@@ -192,7 +191,10 @@ export const MessageItem = (props: MessageItemProps) => {
       {showAvatarGutter && (
         <Box className={cls.avatarGutter}>
           {isVisibleAvatar && (
-            <Link href={`/profile/${messageInfo.sender.username}`}>
+            <Link
+              href={`/profile/${messageInfo.sender.username}`}
+              className={cls.avatarProfileLink}
+            >
               <AppAvatar
                 name={messageInfo.sender.username}
                 src={messageInfo.sender.avatarURL}

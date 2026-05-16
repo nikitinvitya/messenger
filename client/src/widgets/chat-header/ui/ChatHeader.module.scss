@@ -2,9 +2,10 @@
   width: 100%;
   height: var(--navbar-height);
   display: grid;
-  grid-template-columns: 1fr 8fr 1fr;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   padding: 0 10px;
+  gap: 4px;
   z-index: 10;
   background-color: var(--header-color);
   border-bottom: 1px solid var(--header-border);
@@ -18,8 +19,23 @@
   .centerSection {
     display: flex;
     justify-content: center;
-    justify-self: start;
     min-width: 0;
+  }
+
+  .rightSection {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  @media (min-width: 769px) {
+    .centerSection {
+      justify-content: flex-start;
+      justify-self: start;
+    }
+
+    .rightSection {
+      justify-self: end;
+    }
   }
 
   .profileLink {
@@ -56,10 +72,5 @@
   .statusMuted {
     color: var(--text-secondary);
     font-size: 0.75rem;
-  }
-
-  .menuWrapper {
-    display: flex;
-    justify-content: flex-end;
   }
 }

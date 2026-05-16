@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Button, Text } from '@mantine/core';
+import { Box, Text, UnstyledButton } from '@mantine/core';
 import { useState } from 'react';
 import { SendMessageForm } from '@/features/send-message';
 import { unblockUser } from '@/entities/blocklist';
@@ -23,8 +23,7 @@ export const ChatFooter = ({ chatID, partnerUserID }: ChatFooterProps) => {
     try {
       await unblockUser(partnerUserID);
       setBlockStatus('none');
-    } catch (error) {
-      console.error('Failed to unblock user:', error);
+    } catch {
     } finally {
       setIsUnblocking(false);
     }
@@ -55,19 +54,23 @@ function FooterContent({
 }) {
   if (blockStatus === 'recipient_blocked') {
     return (
-      <Box className={cls.blockedState}>
-        <Text className={cls.blockedText}>You blocked this user</Text>
-        <Button className={cls.unblockBtn} onClick={onUnblock} loading={isUnblocking}>
-          Unblock
-        </Button>
-      </Box>
+      <UnstyledButton
+        type="button"
+        className={cls.unblockFooterBtn}
+        onClick={onUnblock}
+        disabled={isUnblocking}
+      >
+        {isUnblocking ? 'Unblocking…' : 'Unblock'}
+      </UnstyledButton>
     );
   }
 
   if (blockStatus === 'sender_blocked') {
     return (
-      <Box className={cls.blockedState}>
-        <Text className={cls.blockedText}>You can&apos;t send messages — you are blocked</Text>
+      <Box className={cls.blockedBanner}>
+        <Text className={cls.blockedText}>
+          You can&apos;t send messages — you are blocked
+        </Text>
       </Box>
     );
   }

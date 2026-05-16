@@ -54,8 +54,7 @@ export const SendMessageForm = ({ chatID }: SendMessageFormProps) => {
     try {
       const data = await uploadMedia(file);
       setImageUrl(data.url);
-    } catch (error) {
-      console.error("Upload failed", error);
+    } catch {
     } finally {
       setIsLoading(false);
     }
@@ -79,8 +78,7 @@ export const SendMessageForm = ({ chatID }: SendMessageFormProps) => {
 
       form.reset();
       setImageUrl(null);
-    } catch (error) {
-      console.error("Failed to process message action", error);
+    } catch {
     }
   }
 
