@@ -24,3 +24,23 @@
   flex-shrink: 0;
   pointer-events: none;
 }
+
+.savedEmptyState {
+  margin: auto;
+  max-width: 280px;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.savedEmptyTitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.savedEmptyHint {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
