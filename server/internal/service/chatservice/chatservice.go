@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/nikitinvitya/messenger/internal/cache"
 	"github.com/nikitinvitya/messenger/internal/dto"
 	"github.com/nikitinvitya/messenger/internal/model"
 	"github.com/nikitinvitya/messenger/internal/repository/chatrepository"
@@ -41,14 +42,28 @@ type chatService struct {
 	hub         *websocket.Hub
 	messageRepo messagerepository.MessageRepository
 	userRepo    userrepository.UserRepository
+	cache       cache.Cache
 }
 
-func NewChatService(repo chatrepository.ChatRepository, hub *websocket.Hub, messageRepo messagerepository.MessageRepository, userRepo userrepository.UserRepository) ChatService {
+func NewChatService(repo chatrepository.ChatRepository, hub *websocket.Hub, messageRepo messagerepository.MessageRepository, userRepo userrepository.UserRepository, c cache.Cache) ChatService {
 	return &chatService{
 		repo:        repo,
 		hub:         hub,
 		messageRepo: messageRepo,
 		userRepo:    userRepo,
+		cache:       c,
+	}
+}
+
+func (s *chatService) invalidateChatsForUsers(ctx context.Context, userIDs []int) {
+	if err := s.cache.InvalidateUserChats(ctx, userIDs...); err != nil {
+		slog.Warn("cache: invalidate user chats", "error", err)
+	}
+}
+
+func (s *chatService) invalidateChat(ctx context.Context, chatID int, viewerIDs []int) {
+	if err := s.cache.InvalidateChat(ctx, chatID, viewerIDs); err != nil {
+		slog.Warn("cache: invalidate chat", "error", err, "chatID", chatID)
 	}
 }
 
@@ -98,6 +113,8 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chat
 		return 0, err
 	}
 
+	s.invalidateChatsForUsers(ctx, finalUserIDs)
+
 	fullChatData, err := s.GetChatByID(ctx, creatorID, chatID)
 	if err == nil {
 		s.hub.SendToUsers(websocket.EventChatCreated, fullChatData, finalUserIDs)
@@ -107,6 +124,13 @@ func (s *chatService) CreateChat(ctx context.Context, participantIDs []int, chat
 }
 
 func (s *chatService) ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error) {
+	key := cache.UserChatsKey(userID)
+	var cached []*dto.ChatResponse
+	if ok, err := s.cache.Get(ctx, key, &cached); err == nil && ok {
+		cache.RefreshChatsOnline(cached, s.hub)
+		return cached, nil
+	}
+
 	chats, err := s.repo.ListUserChats(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -125,6 +149,10 @@ func (s *chatService) ListUserChats(ctx context.Context, userID int) ([]*dto.Cha
 		chat.Participants = participants
 	}
 
+	if err := s.cache.Set(ctx, key, chats, 0); err != nil {
+		slog.Warn("cache: set user chats", "error", err, "userID", userID)
+	}
+
 	return chats, nil
 }
 
@@ -139,6 +167,13 @@ func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (
 	}
 	if !isExist {
 		return nil, messageservice.ErrAccessDenied
+	}
+
+	key := cache.ChatByIDKey(chatID, userID)
+	var cached dto.ChatResponse
+	if ok, err := s.cache.Get(ctx, key, &cached); err == nil && ok {
+		cache.RefreshChatOnline(&cached, s.hub)
+		return &cached, nil
 	}
 
 	chat, err := s.repo.GetChatByID(ctx, chatID)
@@ -162,6 +197,10 @@ func (s *chatService) GetChatByID(ctx context.Context, userID int, chatID int) (
 	result.CreatedAt = chat.CreatedAt
 	result.Participants = participants
 	result.AvatarURL = chat.AvatarURL
+
+	if err := s.cache.Set(ctx, key, result, 0); err != nil {
+		slog.Warn("cache: set chat", "error", err, "chatID", chatID)
+	}
 
 	return &result, nil
 }
@@ -227,6 +266,8 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 		if err := s.repo.DeleteChat(ctx, chatID); err != nil {
 			return err
 		}
+		s.invalidateChatsForUsers(ctx, participantIDs)
+		s.invalidateChat(ctx, chatID, participantIDs)
 		s.hub.SendToUsers(websocket.EventChatDeleted, map[string]int{"chatId": chatID}, participantIDs)
 		return nil
 	}
@@ -258,6 +299,9 @@ func (s *chatService) LeaveChat(ctx context.Context, userID int, chatID int) err
 			slog.Error("failed to delete chat", "error", err, "chatID", chatID)
 		}
 	}
+
+	s.invalidateChatsForUsers(ctx, participantIDs)
+	s.invalidateChat(ctx, chatID, participantIDs)
 
 	return nil
 }
@@ -293,6 +337,8 @@ func (s *chatService) UpdateChat(ctx context.Context, userID, chatID int, name *
 	}
 
 	participantIDs, _ := s.repo.ListChatParticipantsID(ctx, chatID)
+	s.invalidateChatsForUsers(ctx, participantIDs)
+	s.invalidateChat(ctx, chatID, participantIDs)
 	s.hub.SendToUsers(websocket.EventChatUpdated, updatedChatDTO, participantIDs)
 
 	if systemText != "" {
@@ -344,6 +390,8 @@ func (s *chatService) AddParticipant(ctx context.Context, requesterID, chatID, t
 
 	updatedChat, _ := s.GetChatByID(ctx, requesterID, chatID)
 	participantIDs, _ := s.repo.ListChatParticipantsID(ctx, chatID)
+	s.invalidateChatsForUsers(ctx, participantIDs)
+	s.invalidateChat(ctx, chatID, participantIDs)
 
 	s.hub.SendToUsers(websocket.EventChatUpdated, updatedChat, participantIDs)
 	s.hub.SendToUsers(websocket.EventChatCreated, updatedChat, []int{targetUserID})
