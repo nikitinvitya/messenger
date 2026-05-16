@@ -11,6 +11,7 @@ import (
 	"github.com/nikitinvitya/messenger/internal/handler/middleware"
 	"github.com/nikitinvitya/messenger/internal/handler/response"
 	"github.com/nikitinvitya/messenger/internal/service/authservice"
+	"github.com/nikitinvitya/messenger/internal/service/chatservice"
 )
 
 const (
@@ -18,12 +19,14 @@ const (
 )
 
 type AuthHandler struct {
-	service authservice.AuthService
+	service     authservice.AuthService
+	chatService chatservice.ChatService
 }
 
-func NewAuthHandler(service authservice.AuthService) *AuthHandler {
+func NewAuthHandler(service authservice.AuthService, chatService chatservice.ChatService) *AuthHandler {
 	return &AuthHandler{
-		service: service,
+		service:     service,
+		chatService: chatService,
 	}
 }
 
@@ -38,7 +41,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Register(r.Context(), requestBody.Email, requestBody.Username, requestBody.Password); err != nil {
+	userID, err := h.service.Register(r.Context(), requestBody.Email, requestBody.Username, requestBody.Password)
+	if err != nil {
 		switch {
 		case errors.Is(err, authservice.UsernameAlreadyExists):
 			handler.ErrorCodeResponse(w, http.StatusConflict, "Username already exists", "USERNAME_TAKEN")
@@ -52,6 +56,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to create user", err)
 			return
 		}
+	}
+
+	if _, err = h.chatService.EnsureSavedChat(r.Context(), userID); err != nil {
+		handler.ServerErrorResponse(w, http.StatusInternalServerError, "Failed to create saved messages chat", err)
+		return
 	}
 
 	successPayload := map[string]string{"message": "User created successfully. You can log in now."}

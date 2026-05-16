@@ -109,6 +109,7 @@ func (h *APIHandlers) InitRoutes() http.Handler {
 				r.Get("/{chatID}/info", h.Chat.GetChatInfo)
 				r.Put("/{chatID}", h.Chat.UpdateChat)
 				r.Delete("/leave/{chatID}", h.Chat.LeaveChat)
+				r.Delete("/{chatID}/history", h.Chat.ClearChatHistory)
 			})
 
 			r.Route("/messages", func(r chi.Router) {

@@ -19,7 +19,7 @@ const (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, email, username, password string) error
+	Register(ctx context.Context, email, username, password string) (int, error)
 	Login(ctx context.Context, identifier, password string) (string, time.Time, error)
 	GenerateWSTicket(ctx context.Context, userID int) (string, error)
 }
@@ -43,26 +43,26 @@ func NewAuthService(repos userrepository.UserRepository, jwtSecret string) AuthS
 	}
 }
 
-func (s *authService) Register(ctx context.Context, emailStr, username, password string) error {
+func (s *authService) Register(ctx context.Context, emailStr, username, password string) (int, error) {
 	user, err := s.repos.GetUserByName(ctx, username)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if user != nil {
-		return UsernameAlreadyExists
+		return 0, UsernameAlreadyExists
 	}
 
 	user, err = s.repos.GetUserByEmail(ctx, emailStr)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if user != nil {
-		return EmailAlreadyExists
+		return 0, EmailAlreadyExists
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	newUser := &model.User{
@@ -72,8 +72,8 @@ func (s *authService) Register(ctx context.Context, emailStr, username, password
 		IsVerified:   true,
 	}
 
-	_, err = s.repos.CreateUser(ctx, newUser)
-	return err
+	userID, err := s.repos.CreateUser(ctx, newUser)
+	return userID, err
 }
 
 func (s *authService) Login(ctx context.Context, identifier, password string) (string, time.Time, error) {
