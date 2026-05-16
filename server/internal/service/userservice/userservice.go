@@ -79,8 +79,8 @@ func (s *userService) GetProfileByName(ctx context.Context, username string) (*m
 	}
 	user.IsOnline = s.hub.IsUserOnline(user.ID)
 
-	if err := s.cache.Set(ctx, key, user, 0); err != nil {
-		slog.Warn("cache: set user by username", "error", err, "username", username)
+	if err := s.cache.Set(ctx, cache.UserByUsernameKey(user.Username), user, 0); err != nil {
+		slog.Warn("cache: set user by username", "error", err, "username", user.Username)
 	}
 	if err := s.cache.Set(ctx, cache.UserByIDKey(user.ID), user, 0); err != nil {
 		slog.Warn("cache: set user by id", "error", err, "userID", user.ID)
