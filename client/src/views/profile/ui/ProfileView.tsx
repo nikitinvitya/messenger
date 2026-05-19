@@ -22,6 +22,8 @@ import { useUserStore } from '@/entities/user';
 import { updateUserInfo } from '@/entities/user/api/updateUserInfo';
 import { uploadMedia } from '@/entities/message/api/uploadMedia';
 import { createChat } from '@/entities/chat/api/createChat';
+import { getChatInfo } from '@/entities/chat/api/getChatInfo';
+import { useChatStore } from '@/entities/chat/model/store';
 import { ChangePasswordModal } from '@/features/change-password';
 import { AppAvatar } from "@/shared/ui/AppAvatar/ui/AppAvatar";
 import Image from 'next/image';
@@ -77,6 +79,12 @@ export const ProfileView = ({ targetUser }: ProfileViewProps) => {
         userIDs: [targetUser.id],
         chatType: "private",
       });
+
+      try {
+        const chat = await getChatInfo(res.chatID);
+        useChatStore.getState().addChat(chat);
+      } catch {
+      }
 
       handleClose();
 

@@ -44,12 +44,14 @@ export const MessageItem = (props: MessageItemProps) => {
   );
 
   const isRead = useMemo(() => {
-    if (!isCurrentUserMessage || !chat || !chat.participants) return false;
+    if (!isCurrentUserMessage) return false;
+    if (chatType === 'saved') return true;
+    if (!chat || !chat.participants) return false;
 
     return chat.participants
       .filter(p => p.id !== currentUser?.id)
       .some(p => (p.lastReadMessageID || 0) >= messageInfo.id);
-  }, [chat, messageInfo.id, isCurrentUserMessage, currentUser?.id]);
+  }, [chat, chatType, messageInfo.id, isCurrentUserMessage, currentUser?.id]);
 
   if (messageInfo.type === 'system') {
     return (
@@ -162,7 +164,12 @@ export const MessageItem = (props: MessageItemProps) => {
       )}
 
       <Box className={cls.contentAndTime}>
-        {messageInfo.content && <Text className={cls.messageContent}>{messageInfo.content}</Text>}
+        <Box className={cls.messageBody}>
+          {messageInfo.content && <Text className={cls.messageContent}>{messageInfo.content}</Text>}
+          {messageInfo.editedAt && (
+            <Text className={cls.editedLabel}>edited</Text>
+          )}
+        </Box>
         <Box className={cls.statusWrapper}>
           <Text className={cls.messageTime}>{formatTime(messageInfo.createdAt)}</Text>
           {isCurrentUserMessage && (

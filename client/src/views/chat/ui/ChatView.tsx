@@ -39,7 +39,7 @@ export async function ChatView({ chatID }: ChatViewProps) {
     }
 
     return (
-      <Box style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <ChatWindow
           initialMessages={messagesData.messages}
           blockStatus={saved ? 'none' : messagesData.blockStatus}

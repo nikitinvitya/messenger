@@ -86,8 +86,7 @@ export const MessageList = ({ initialMessages, chatType, className }: MessageLis
           chatType={chatType}
         />
       ))}
-      <Box className={cls.listSpacer} />
-      <div ref={bottomRef} style={{ float: "left", clear: "both" }} />
+      <div ref={bottomRef} style={{ height: 1, flexShrink: 0 }} />
     </Box>
   );
 };

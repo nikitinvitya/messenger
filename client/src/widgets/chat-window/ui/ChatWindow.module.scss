@@ -1,7 +1,8 @@
 .chatWindow {
   display: flex;
   flex-direction: row;
-  height: 100vh;
+  height: var(--app-height);
+  max-height: var(--app-height);
   width: 100%;
   overflow: hidden;
   position: relative;
@@ -29,32 +30,14 @@
 
 .messagesWrapper {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-
-  @media (max-width: 768px) {
-    position: absolute;
-    top: var(--navbar-height);
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    z-index: 1;
-  }
 }
 
 .footerContainer {
+  flex-shrink: 0;
   width: 100%;
   z-index: 10;
-
-  @media (max-width: 768px) {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    pointer-events: none;
-
-    & > * {
-      pointer-events: auto;
-    }
-  }
 }

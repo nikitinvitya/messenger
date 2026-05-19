@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react';
+import { applyMessageToChatList } from '@/entities/chat/lib/applyMessageToChatList';
 import { sendMessage } from "@/entities/message/api/sendMessage";
 import { uploadMedia } from "@/entities/message/api/uploadMedia";
 import { updateMessage } from "@/entities/message/api/updateMessage";
 import { useMessageStore } from "@/entities/message/model/store";
+import { useKeyboardOffset } from '@/shared/hooks/useKeyboardOffset';
+import { useMediaQuery } from '@mantine/hooks';
 import { useForm } from "@mantine/form";
 import Image from "next/image"
 import { Box, Button, Textarea, ActionIcon, Text } from "@mantine/core";
@@ -22,6 +25,9 @@ interface SendMessageFormProps {
 }
 
 export const SendMessageForm = ({ chatID }: SendMessageFormProps) => {
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  useKeyboardOffset(!!isMobile);
+
   const [isUploading, setIsLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,11 +74,12 @@ export const SendMessageForm = ({ chatID }: SendMessageFormProps) => {
         await updateMessage(editingMessage.id, values.content);
         setEditingMessage(null);
       } else {
-        await sendMessage(chatID, {
+        const message = await sendMessage(chatID, {
           content: values.content,
           imageURL: imageUrl || undefined,
           replyToMessageID: replyingToMessage?.id
         });
+        await applyMessageToChatList(chatID, message, { isOwnMessage: true, isCurrentChat: true });
         setReplyingToMessage(null);
       }
 

@@ -1,7 +1,7 @@
 .signInView {
   width: 100%;
   padding: 2rem;
-  min-height: 100vh;
+  min-height: var(--app-height);
   display: flex;
   flex-direction: column;
   justify-content: center;

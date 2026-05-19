@@ -173,6 +173,21 @@
   padding: 2px 8px 4px 8px;
 }
 
+.messageBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.editedLabel {
+  font-size: 0.6rem;
+  opacity: 0.55;
+  line-height: 1.2;
+  margin-top: 2px;
+  text-transform: lowercase;
+}
+
 .statusWrapper {
   display: flex;
   align-items: center;

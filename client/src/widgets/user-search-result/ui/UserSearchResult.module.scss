@@ -1,5 +1,6 @@
 .userSearchResult {
-  height: calc(100vh - var(--navbar-height));
+  min-height: 0;
+  flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

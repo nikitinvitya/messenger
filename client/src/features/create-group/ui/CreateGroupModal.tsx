@@ -39,6 +39,8 @@ export const CreateGroupModal = ({isOpened, onClose}: GroupModalProps) => {
       setSelectedUsers(selectedUsers.filter(u => u.id !== user.id));
     } else {
       setSelectedUsers([...selectedUsers, user]);
+      setSearchQuery('');
+      setSearchResult([]);
     }
   };
 

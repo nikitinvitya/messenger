@@ -1,6 +1,7 @@
 .layoutWrapper {
   display: flex;
-  height: 100vh;
+  height: var(--app-height);
+  max-height: var(--app-height);
   width: 100vw;
   overflow: hidden;
   position: relative;
@@ -8,24 +9,28 @@
 
 .mainContent {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   height: 100%;
   position: relative;
   background-color: var(--main-content-bg);
   z-index: 5;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   @media (max-width: 768px) {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: var(--app-height);
+    max-height: var(--app-height);
     z-index: 20;
     display: none;
 
     &.active {
-      display: block;
+      display: flex;
     }
   }
 }

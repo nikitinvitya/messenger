@@ -1,4 +1,5 @@
 :root {
+  --app-height: 100vh;
   --font-family-main: Roboto, 'Times New Roman', Serif;
   --font-size-m: 20px;
   --font-line-m: 28px;
@@ -170,11 +171,19 @@
   --online-dot: #6bcb77;
 }
 
+@supports (height: 100dvh) {
+  :root {
+    --app-height: 100dvh;
+  }
+}
+
 html {
+  height: var(--app-height);
   background-color: var(--app-bg);
 }
 
 body {
+  min-height: var(--app-height);
   background-color: var(--app-bg);
   color: var(--text-strong);
 }

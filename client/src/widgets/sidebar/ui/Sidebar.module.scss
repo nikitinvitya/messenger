@@ -1,9 +1,11 @@
 .sidebar {
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
-  height: 100vh;
+  height: var(--app-height);
+  max-height: var(--app-height);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   border-right: 1px solid var(--sidebar-border);
   background: var(--sidebar-bg);
   position: relative;
@@ -22,5 +24,7 @@
 
 .scrollArea {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  padding-bottom: 72px;
 }

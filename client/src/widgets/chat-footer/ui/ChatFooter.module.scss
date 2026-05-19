@@ -12,6 +12,7 @@
 
   @media (max-width: 768px) {
     padding: 24px 16px 16px;
+    padding-bottom: max(16px, calc(16px + var(--keyboard-offset, 0px)));
     background: var(--send-mobile-gradient);
     backdrop-filter: blur(1px);
   }

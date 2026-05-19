@@ -1,7 +1,7 @@
 .desktopPanel {
   width: 0;
   min-width: 0;
-  height: 100vh;
+  height: var(--app-height);
   background: var(--surface-elevated);
   border-left: 1px solid var(--border-subtle);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -39,7 +39,7 @@
 
 .infoWrapper {
   overflow: hidden !important;
-  height: calc(100vh - 60px);
+  height: calc(var(--app-height) - 60px);
   padding: 0 16px 16px 16px !important;
 }
 

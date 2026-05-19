@@ -1,4 +1,6 @@
 import { api } from './index';
+import { applyMessageToChatList } from '@/entities/chat/lib/applyMessageToChatList';
+import type { Message } from '@/entities/message/model/model';
 import { useMessageStore } from '@/entities/message/model/store';
 import { useChatStore } from '@/entities/chat/model/store';
 import { useUserStore } from '@/entities/user/model/store';
@@ -59,7 +61,7 @@ class WebSocketService {
         const parsedEvent: WebSocketEvent = JSON.parse(event.data);
         const { type, payload } = parsedEvent;
         const { addMessage, updateMessage, deleteMessage, setBlockStatus } = useMessageStore.getState();
-        const { removeChat, addChat, updateChat, updateParticipantStatus } = useChatStore.getState();
+        const { removeChat, addChat, updateChat, upsertChat, updateParticipantStatus } = useChatStore.getState();
         const { user: currentUser } = useUserStore.getState();
 
         const chatId = Number(payload.chatId || payload.chatID || payload.id);
@@ -67,48 +69,7 @@ class WebSocketService {
 
         switch (type) {
           case 'create_message': {
-            const freshChats = useChatStore.getState().chats;
-            const targetChat = freshChats.find(c => c.id === chatId);
-            const isCurrentChat = window.location.pathname === `/chats/${chatId}`;
-
-            const currentUnread = typeof targetChat?.unreadCount === 'number' ? targetChat.unreadCount : 0;
-
-            updateChat(chatId, {
-              lastMessage: payload,
-              unreadCount: isCurrentChat ? 0 : currentUnread + 1
-            });
-
-            if (isCurrentChat) {
-              addMessage(payload);
-              this.sendReadMessages(chatId, payload.id);
-            }
-
-            if (payload.sender.id !== currentUser?.id) {
-              if (document.visibilityState !== 'visible' || !isCurrentChat) {
-                const iconUrl =
-                  payload.sender.avatarURL && mediaOrigin
-                    ? `${mediaOrigin}${payload.sender.avatarURL}`
-                    : undefined;
-
-                let title = payload.sender.username;
-                let body = payload.content || "Sent an image";
-
-                if (targetChat?.type === 'group') {
-                  title = targetChat.name || "Group";
-                  body = `${payload.sender.username}: ${body}`;
-                }
-
-                showBrowserNotification({
-                  title,
-                  body,
-                  icon: iconUrl,
-                  onClick: () => {
-                    window.focus();
-                    window.location.href = `/chats/${chatId}`;
-                  }
-                });
-              }
-            }
+            void this.handleIncomingMessage(payload, currentUser?.id);
             break;
           }
 
@@ -133,7 +94,13 @@ class WebSocketService {
           case 'delete_message': deleteMessage({ id: payload.id }); break;
           case 'chat_created': addChat(payload); break;
           case 'user_status': updateParticipantStatus(payload.userId, payload.online); break;
-          case 'chat_updated': updateChat(chatId, payload); break;
+          case 'chat_updated':
+            if (payload?.id != null && payload?.type) {
+              upsertChat(payload);
+            } else {
+              updateChat(chatId, payload);
+            }
+            break;
           case 'user_left_chat': {
             if (currentUser && payload.userId === currentUser.id) {
               removeChat(chatId);
@@ -187,6 +154,60 @@ class WebSocketService {
     };
   }
 
+  private async handleIncomingMessage(
+    payload: {
+      id: number;
+      chatId: number;
+      content?: string;
+      createdAt: string;
+      imageURL?: string | null;
+      type?: string;
+      sender: { id: number; username: string; avatarURL?: string | null };
+    },
+    currentUserId?: number,
+  ) {
+    const chatId = Number(payload.chatId);
+    const isCurrentChat = window.location.pathname === `/chats/${chatId}`;
+    const isOwnMessage = payload.sender.id === currentUserId;
+
+    await applyMessageToChatList(chatId, payload, { isOwnMessage, isCurrentChat });
+
+    const targetChat = useChatStore.getState().chats.find(c => c.id === chatId);
+
+    const { addMessage } = useMessageStore.getState();
+
+    if (isCurrentChat) {
+      addMessage(wsPayloadToMessage(payload));
+      this.sendReadMessages(chatId, payload.id);
+    }
+
+    if (!isOwnMessage && (document.visibilityState !== 'visible' || !isCurrentChat)) {
+      const mediaOrigin = BACKEND_ORIGIN;
+      const iconUrl =
+        payload.sender.avatarURL && mediaOrigin
+          ? `${mediaOrigin}${payload.sender.avatarURL}`
+          : undefined;
+
+      let title = payload.sender.username;
+      let body = payload.content || 'Sent an image';
+
+      if (targetChat?.type === 'group') {
+        title = targetChat.name || 'Group';
+        body = `${payload.sender.username}: ${body}`;
+      }
+
+      showBrowserNotification({
+        title,
+        body,
+        icon: iconUrl,
+        onClick: () => {
+          window.focus();
+          window.location.href = `/chats/${chatId}`;
+        },
+      });
+    }
+  }
+
   public sendReadMessages(chatID: number, messageID: number) {
     const send = () => {
       if (this.socket?.readyState === WebSocket.OPEN) {
@@ -209,6 +230,33 @@ class WebSocketService {
       }, 500);
     }
   }
+}
+
+function wsPayloadToMessage(payload: {
+  id: number;
+  chatId: number;
+  content?: string;
+  createdAt: string;
+  imageURL?: string | null;
+  type?: string;
+  sender: { id: number; username: string; avatarURL?: string | null };
+}): Message {
+  const type =
+    payload.type === 'image' || payload.type === 'system' ? payload.type : 'text';
+
+  return {
+    id: payload.id,
+    chatId: payload.chatId,
+    createdAt: payload.createdAt,
+    content: payload.content ?? '',
+    type,
+    imageURL: payload.imageURL ?? undefined,
+    sender: {
+      id: payload.sender.id,
+      username: payload.sender.username,
+      avatarURL: payload.sender.avatarURL ?? undefined,
+    },
+  };
 }
 
 export const websocketService = new WebSocketService();

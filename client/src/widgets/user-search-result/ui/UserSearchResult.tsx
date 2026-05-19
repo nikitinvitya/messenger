@@ -4,6 +4,8 @@ import cls from './UserSearchResult.module.scss'
 import {UserSearchResponse} from "@/entities/user/model/model";
 import {Box, Text} from "@mantine/core";
 import {createChat} from "@/entities/chat/api/createChat";
+import {getChatInfo} from "@/entities/chat/api/getChatInfo";
+import {useChatStore} from "@/entities/chat/model/store";
 import {useRouter} from "next/navigation";
 import {AppRoutes} from "@/shared/config/routes";
 import {AppAvatar} from "@/shared/ui/AppAvatar/ui/AppAvatar";
@@ -25,6 +27,11 @@ export const UserSearchResult = ({ users }: UserSearchResultProps) => {
         userIDs: [user.id],
         chatType: "private",
       });
+      try {
+        const chat = await getChatInfo(res.chatID);
+        useChatStore.getState().addChat(chat);
+      } catch {
+      }
       router.push(`${AppRoutes.chats}/${res.chatID}`);
     } catch (e: unknown) {
       const err = e as { code?: string; name?: string };

@@ -12,7 +12,8 @@
   }
 
   @media (max-width: 768px) {
-    padding: 32px 12px 12px 12px;
+    padding: 32px 12px 12px;
+    padding-bottom: max(12px, calc(12px + var(--keyboard-offset, 0px)));
     background: var(--send-mobile-gradient);
     backdrop-filter: blur(1px);
   }
@@ -98,7 +99,8 @@
 
   @media (min-width: 769px) {
     .sendImage {
-      filter: invert(50%) sepia(50%) saturate(100) hue-rotate(185deg);    }
+      filter: invert(50%) sepia(50%) saturate(100) hue-rotate(185deg);
+    }
 
     &:hover {
       background-color: var(--accent-tg-blue-soft);

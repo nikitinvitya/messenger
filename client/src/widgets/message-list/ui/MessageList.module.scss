@@ -1,21 +1,12 @@
 .messageList {
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
-  overflow-y: scroll;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   gap: 10px;
   padding: 10px 10px;
   background: transparent;
-}
-
-.listSpacer {
-  display: none;
-
-  @media (max-width: 768px) {
-    display: block;
-    min-height: var(--sendform-height);
-    width: 100%;
-  }
 }
 
 .anchor {
