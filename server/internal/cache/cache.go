@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-// Cache stores JSON-serialized API responses. Noop when Redis is not configured.
 type Cache interface {
 	Enabled() bool
 	Get(ctx context.Context, key string, dest any) (bool, error)

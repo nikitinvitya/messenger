@@ -15,6 +15,7 @@ type ChatRepository interface {
 	CreateChat(ctx context.Context, name *string, chatType string, userIDs []int) (int, error)
 	FindSavedChatByUserID(ctx context.Context, userID int) (int, error)
 	ListUserChats(ctx context.Context, userID int) ([]*dto.ChatResponse, error)
+	GetUserChatListItem(ctx context.Context, userID, chatID int) (*dto.ChatResponse, error)
 	IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error)
 	FindPrivateChatByParticipants(ctx context.Context, userID1 int, userID2 int) (int, error)
 	GetChatByID(ctx context.Context, chatID int) (*model.Chat, error)
@@ -158,6 +159,82 @@ func (r *chatRepository) ListUserChats(ctx context.Context, userID int) ([]*dto.
 	}
 
 	return chats, nil
+}
+
+func (r *chatRepository) GetUserChatListItem(ctx context.Context, userID, chatID int) (*dto.ChatResponse, error) {
+	sqlReq := `SELECT 
+			c.id, 
+			c.name, 
+			c.type, 
+			c.created_at,
+			c.avatar_url,
+			last_msg.id as last_message_id,
+			last_msg.content as last_message_content,
+			last_msg.created_at as last_message_created_at,
+			(SELECT COUNT(*) FROM messages m 
+			 WHERE m.chat_id = c.id 
+			 AND m.id > cp.last_read_message_id
+			 AND m.sender_id != $1) as unread_count
+		FROM 
+			chats c
+		JOIN 
+			chat_participants cp ON c.id = cp.chat_id
+		LEFT JOIN LATERAL (
+			SELECT id, content, created_at
+			FROM messages
+			WHERE chat_id = c.id
+			ORDER BY created_at DESC
+			LIMIT 1
+		) last_msg ON true
+		WHERE 
+			cp.user_id = $1 AND c.id = $2`
+
+	var chat dto.ChatResponse
+	var lastMessage dto.LastMessage
+	var lastMessageID sql.NullInt64
+	var lastMessageContent sql.NullString
+	var lastMessageCreatedAt sql.NullTime
+	var avatarURL sql.NullString
+	var unreadCount int
+
+	err := r.db.QueryRowContext(ctx, sqlReq, userID, chatID).Scan(
+		&chat.ID,
+		&chat.Name,
+		&chat.Type,
+		&chat.CreatedAt,
+		&avatarURL,
+		&lastMessageID,
+		&lastMessageContent,
+		&lastMessageCreatedAt,
+		&unreadCount,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if avatarURL.Valid {
+		chat.AvatarURL = &avatarURL.String
+	}
+
+	if lastMessageID.Valid {
+		lastMessage.ID = int(lastMessageID.Int64)
+		lastMessage.CreatedAt = lastMessageCreatedAt.Time
+		if lastMessageContent.Valid {
+			decrypted, err := r.cipher.DecryptContent(lastMessageContent.String)
+			if err != nil {
+				return nil, fmt.Errorf("decrypt last message %d content: %w", lastMessage.ID, err)
+			}
+			lastMessage.Content = decrypted
+		}
+		chat.LastMessage = &lastMessage
+	}
+
+	chat.UnreadCount = unreadCount
+
+	return &chat, nil
 }
 
 func (r *chatRepository) IsUserInChat(ctx context.Context, userID int, chatID int) (bool, error) {

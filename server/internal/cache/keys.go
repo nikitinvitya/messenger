@@ -10,7 +10,6 @@ func UserByIDKey(userID int) string {
 	return fmt.Sprintf("user:id:%d", userID)
 }
 
-// UserByUsernameKey must match DB username case exactly (usernames are case-sensitive).
 func UserByUsernameKey(username string) string {
 	return fmt.Sprintf("user:username:%s", username)
 }

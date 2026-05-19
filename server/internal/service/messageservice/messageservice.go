@@ -191,8 +191,32 @@ func (s *messageService) CreateMessage(ctx context.Context, senderID, chatID int
 
 	s.hub.SendToUsers(websocket.EventMessageCreated, messagePayload, participantsIDs)
 	s.invalidateChatCaches(ctx, chatID)
+	s.broadcastChatListUpdate(ctx, chatID, participantsIDs)
 
 	return finalMessage, nil
+}
+
+func (s *messageService) broadcastChatListUpdate(ctx context.Context, chatID int, participantIDs []int) {
+	participants, err := s.chatRepo.ListChatParticipants(ctx, chatID)
+	if err != nil {
+		slog.Warn("failed to list participants for chat list broadcast", "error", err, "chatID", chatID)
+		return
+	}
+
+	for _, userID := range participantIDs {
+		chatItem, err := s.chatRepo.GetUserChatListItem(ctx, userID, chatID)
+		if err != nil {
+			slog.Warn("failed to get chat list item for broadcast", "error", err, "userID", userID, "chatID", chatID)
+			continue
+		}
+		if chatItem == nil {
+			continue
+		}
+
+		chatItem.Participants = participants
+		cache.RefreshChatOnline(chatItem, s.hub)
+		s.hub.SendToUsers(websocket.EventChatUpdated, chatItem, []int{userID})
+	}
 }
 
 func (s *messageService) ListMessagesInChat(ctx context.Context, userID, chatID, limit, offset int) (*dto.ListMessagesResponse, error) {
