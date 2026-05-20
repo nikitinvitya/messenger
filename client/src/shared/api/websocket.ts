@@ -1,6 +1,6 @@
 import { api } from './index';
 import { applyMessageToChatList } from '@/entities/chat/lib/applyMessageToChatList';
-import type { Message } from '@/entities/message/model/model';
+import { wsPayloadToMessage } from '@/entities/message/lib/wsPayloadToMessage';
 import { useMessageStore } from '@/entities/message/model/store';
 import { useChatStore } from '@/entities/chat/model/store';
 import { useUserStore } from '@/entities/user/model/store';
@@ -90,7 +90,7 @@ class WebSocketService {
             break;
           }
 
-          case 'update_message': updateMessage(payload); break;
+          case 'update_message': updateMessage(wsPayloadToMessage(payload)); break;
           case 'delete_message': deleteMessage({ id: payload.id }); break;
           case 'chat_created': addChat(payload); break;
           case 'user_status': updateParticipantStatus(payload.userId, payload.online); break;
@@ -155,15 +155,7 @@ class WebSocketService {
   }
 
   private async handleIncomingMessage(
-    payload: {
-      id: number;
-      chatId: number;
-      content?: string;
-      createdAt: string;
-      imageURL?: string | null;
-      type?: string;
-      sender: { id: number; username: string; avatarURL?: string | null };
-    },
+    payload: Parameters<typeof wsPayloadToMessage>[0],
     currentUserId?: number,
   ) {
     const chatId = Number(payload.chatId);
@@ -230,33 +222,6 @@ class WebSocketService {
       }, 500);
     }
   }
-}
-
-function wsPayloadToMessage(payload: {
-  id: number;
-  chatId: number;
-  content?: string;
-  createdAt: string;
-  imageURL?: string | null;
-  type?: string;
-  sender: { id: number; username: string; avatarURL?: string | null };
-}): Message {
-  const type =
-    payload.type === 'image' || payload.type === 'system' ? payload.type : 'text';
-
-  return {
-    id: payload.id,
-    chatId: payload.chatId,
-    createdAt: payload.createdAt,
-    content: payload.content ?? '',
-    type,
-    imageURL: payload.imageURL ?? undefined,
-    sender: {
-      id: payload.sender.id,
-      username: payload.sender.username,
-      avatarURL: payload.sender.avatarURL ?? undefined,
-    },
-  };
 }
 
 export const websocketService = new WebSocketService();
